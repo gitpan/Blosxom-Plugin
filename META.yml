@@ -5,6 +5,7 @@ author:
 build_requires:
   ExtUtils::MakeMaker: 6.59
   Test::More: 0.98
+  Test::Pod: 0
 configure_requires:
   ExtUtils::MakeMaker: 6.59
 distribution_type: module
@@ -23,8 +24,9 @@ no_index:
     - xt
 requires:
   Blosxom::Header: 0.05006
+  CGI: 0
   perl: 5.8.9
 resources:
   license: http://dev.perl.org/licenses/
   repository: https://github.com/anazawa/p5-Blosxom-Plugin
-version: 0.00001
+version: 0.00002

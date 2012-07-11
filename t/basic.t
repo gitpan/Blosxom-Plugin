@@ -1,5 +1,7 @@
 use strict;
-use Test::More tests => 2;
+use FindBin;
+use lib "$FindBin::Bin/lib";
+use Test::More tests => 3;
 
 package blosxom;
 
@@ -9,18 +11,53 @@ our $static_entries = 0;
 package foo;
 use base 'Blosxom::Plugin';
 
+__PACKAGE__->load_plugin( 'Foo' );
+
 sub start { !$blosxom::static_entries }
 
 sub last {
-    my $class = shift;
-    $class->response->status( 304 );
+    # I'm not sure whether $c represents 'class' or 'context'.
+    # context class? Anyway, I don't care about the difference
+    my $c = shift;
+    $c->response->status( 304 ) if $c->request->method eq 'GET';
+    $c->foo;
+}
+
+package baz;
+use base qw/Blosxom::Plugin/;
+
+__PACKAGE__->load_plugins(
+    'Foo',
+    'Bar' => {
+        foo => 'qux',
+        bar => 'baz',
+        baz => 'qux',
+    },
+);
+
+sub start { !$blosxom::static_entries }
+
+sub last {
+    my $c = shift;
+    $c->response->header->set( Baz => $c->bar->{foo} );
 }
 
 package main;
 
-my $plugin = 'foo';
+my @plugins = qw( foo baz );
+local $ENV{REQUEST_METHOD} = 'GET';
 
-ok $plugin->start();
-$plugin->last();
+for my $plugin ( @plugins ) {
+    ok $plugin->start();
+}
 
-is_deeply $blosxom::header, { -status => '304 Not Modified' };
+for my $plugin ( @plugins ) {
+    $plugin->last();
+}
+
+is_deeply $blosxom::header, {
+    -foo => 'bar',
+    #-bar => 'baz',
+    -baz => 'qux',
+    -status => '304 Not Modified',
+};

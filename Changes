@@ -1,4 +1,14 @@
 Revision history for Perl extension Blosxom::Plugin.
 
+0.00002  Jul 11th, 2012
+  - Add load_plugin(), load_plugins() and add_method().
+    load_plugin() calls begin() method of each plugin
+  - Add Blosxom::Plugin::Response, Request and Util.
+    Blosxom::Plugin loads them when loaded
+  - A namespace Blosxom::Plugin::* will be open to those who want to
+    register Blosxom metaplugins, though I'm not sure about
+    what a metaplugin is :-) At least, metaplugins will abstract
+    routines from ordinary plugins
+
 0.00001  Jul 8th, 2012
   - First version
