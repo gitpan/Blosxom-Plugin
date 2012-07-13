@@ -26,5 +26,7 @@ t/plugin.t
 t/plugins/not_found
 t/request.t
 t/response.t
+t/upload.t
+t/upload_post_text.txt
 t/util.t
 xt/pod.t

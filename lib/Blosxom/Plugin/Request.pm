@@ -33,12 +33,14 @@ sub instance {
 
 sub has_instance { $instance }
 
-sub method       { shift->{cgi}->request_method }
-sub content_type { shift->{cgi}->content_type   }
-sub referer      { shift->{cgi}->referer        }
-sub remote_host  { shift->{cgi}->remote_host    }
-sub address      { shift->{cgi}->remote_addr    }
-sub user_agent   { shift->{cgi}->user_agent     }
+sub method          { shift->{cgi}->request_method  }
+sub content_type    { shift->{cgi}->content_type    }
+sub referer         { shift->{cgi}->referer         }
+sub remote_host     { shift->{cgi}->remote_host     }
+sub address         { shift->{cgi}->remote_addr     }
+sub user_agent      { shift->{cgi}->user_agent      }
+sub server_protocol { shift->{cgi}->server_protocol }
+sub user            { shift->{cgi}->remote_user     }
 
 sub cookies {
     my ( $self, $name ) = @_;
@@ -48,6 +50,22 @@ sub cookies {
 sub param {
     my ( $self, $key ) = @_;
     $self->{cgi}->param( $key || () );
+}
+
+sub uploads {
+    my $cgi          = shift->{cgi};
+    my $field        = shift;
+    my $filename     = $cgi->param( $field );
+    my $path         = $cgi->tmpFileName( $filename );
+    my $size         = -s $path;
+    my $content_type = $cgi->uploadInfo( $filename )->{'Content-Type'};
+
+    return +{
+        filename     => $filename,
+        path         => $path,
+        content_type => $content_type,
+        size         => $size,
+    };
 }
 
 sub path_info { shift->{path_info} }
@@ -113,6 +131,12 @@ Returns a reference to any existing instance or C<undef> if none is defined.
 =item $request->user_agent
 
 =item $request->address
+
+=item $request->user
+
+=item $request->server_protocol
+
+=item $request->uploads
 
 =back
 

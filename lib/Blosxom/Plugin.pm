@@ -4,7 +4,7 @@ use strict;
 use warnings;
 use Carp qw/croak/;
 
-our $VERSION = '0.00002';
+our $VERSION = '0.00004';
 
 __PACKAGE__->load_plugins( qw/Util Response Request/ );
 
@@ -46,7 +46,7 @@ Blosxom::Plugin - Base class of Blosxom plugins
   package foo;
   use strict;
   use warnings;
-  use base 'Blosxom::Plugin';
+  use parent 'Blosxom::Plugin';
 
   __PACKAGE__->load_plugin( 'DataSection' );
 

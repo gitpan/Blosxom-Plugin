@@ -52,7 +52,11 @@ sub redirect {
     $header->status( shift || 301 );
 }
 
-sub body { $blosxom::output }
+sub body {
+    my $self = shift;
+    return $blosxom::output = shift if @_;
+    $blosxom::output;
+}
 
 1;
 
