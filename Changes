@@ -1,5 +1,8 @@
 Revision history for Perl extension Blosxom::Plugin.
 
+0.00005  Jul 14th, 2012
+  - Add Blosxom::Plugin::Request::Upload
+
 0.00004  Jul 14th, 2012
   - [Request] Add user(), server_protocol() and uploads()
   - [Response] body() become mutable

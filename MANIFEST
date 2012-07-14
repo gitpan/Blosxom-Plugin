@@ -10,6 +10,7 @@ inc/Module/Install/Win32.pm
 inc/Module/Install/WriteAll.pm
 lib/Blosxom/Plugin.pm
 lib/Blosxom/Plugin/Request.pm
+lib/Blosxom/Plugin/Request/Upload.pm
 lib/Blosxom/Plugin/Response.pm
 lib/Blosxom/Plugin/Util.pm
 Makefile.PL

@@ -1,6 +1,7 @@
 package Blosxom::Plugin::Request;
 use strict;
 use warnings;
+use Blosxom::Plugin::Request::Upload;
 use CGI;
 
 sub begin {
@@ -17,7 +18,7 @@ sub instance {
     return $instance if defined $instance;
 
     my %self = (
-        cgi => CGI->new,
+        query => CGI->new,
         flavour => $blosxom::flavour,
         path_info => {
             full   => $blosxom::path_info,
@@ -33,39 +34,47 @@ sub instance {
 
 sub has_instance { $instance }
 
-sub method          { shift->{cgi}->request_method  }
-sub content_type    { shift->{cgi}->content_type    }
-sub referer         { shift->{cgi}->referer         }
-sub remote_host     { shift->{cgi}->remote_host     }
-sub address         { shift->{cgi}->remote_addr     }
-sub user_agent      { shift->{cgi}->user_agent      }
-sub server_protocol { shift->{cgi}->server_protocol }
-sub user            { shift->{cgi}->remote_user     }
+sub method          { shift->{query}->request_method  }
+sub content_type    { shift->{query}->content_type    }
+sub referer         { shift->{query}->referer         }
+sub remote_host     { shift->{query}->remote_host     }
+sub address         { shift->{query}->remote_addr     }
+sub user_agent      { shift->{query}->user_agent      }
+sub server_protocol { shift->{query}->server_protocol }
+sub user            { shift->{query}->remote_user     }
 
 sub cookies {
     my ( $self, $name ) = @_;
-    $self->{cgi}->cookie( $name );
+    $self->{query}->cookie( $name );
 }
 
 sub param {
     my ( $self, $key ) = @_;
-    $self->{cgi}->param( $key || () );
+    $self->{query}->param( $key || () );
 }
 
 sub uploads {
-    my $cgi          = shift->{cgi};
-    my $field        = shift;
-    my $filename     = $cgi->param( $field );
-    my $path         = $cgi->tmpFileName( $filename );
-    my $size         = -s $path;
-    my $content_type = $cgi->uploadInfo( $filename )->{'Content-Type'};
+    my $self  = shift;
+    my $field = shift;
+    my $query = $self->{query};
 
-    return +{
-        filename     => $filename,
-        path         => $path,
-        content_type => $content_type,
-        size         => $size,
-    };
+    if ( my $uploads = $self->{uploads}{$field} ) {
+        return wantarray ? @{ $uploads } : $uploads->[0];
+    } 
+
+    my @uploads;
+    for my $filename ( $query->param( $field ) ) {
+        push @uploads, Blosxom::Plugin::Request::Upload->new(
+            filename => "$filename",
+            fh       => $filename,
+            tempname => $query->tmpFileName( $filename ),
+            headers  => $query->uploadInfo( $filename ),
+        );
+    }
+
+    $self->{uploads}{$field} = \@uploads;
+
+    wantarray ? @uploads : $uploads[0];
 }
 
 sub path_info { shift->{path_info} }

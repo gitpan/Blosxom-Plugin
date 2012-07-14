@@ -1,7 +1,7 @@
 use strict;
 use FindBin;
 use Blosxom::Plugin::Request;
-use Test::More tests => 3;
+use Test::More tests => 6;
 
 # Stolen from CGI.pm
 
@@ -37,6 +37,14 @@ binmode STDIN;
 
 my $request = Blosxom::Plugin::Request->instance;
 my $file = $request->uploads( '300x300_gif' );
-is $file->{content_type}, 'image/gif';
-is $file->{size}, 1656;
-is $file->{filename}, '300x300.gif';
+is $file->content_type, 'image/gif';
+is $file->size, 1656;
+is $file->filename, '300x300.gif';
+is $file->basename, '300x300.gif';
+
+my @hello_names = $request->uploads( 'hello_world' );
+is $hello_names[0]->filename, 'goodbye_world.txt';
+is $hello_names[1]->filename, 'hello_world.txt';
+
+#use Data::Dumper;
+#die Dumper( \@hello_names );

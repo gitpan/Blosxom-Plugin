@@ -4,7 +4,7 @@ use strict;
 use warnings;
 use Carp qw/croak/;
 
-our $VERSION = '0.00004';
+our $VERSION = '0.00005';
 
 __PACKAGE__->load_plugins( qw/Util Response Request/ );
 
