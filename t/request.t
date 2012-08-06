@@ -1,6 +1,6 @@
 use strict;
 use Blosxom::Plugin::Request;
-use Test::More tests => 15;
+use Test::More tests => 19;
 
 {
     package blosxom;
@@ -9,44 +9,52 @@ use Test::More tests => 15;
     our $path_info_mo_num = '07';
     our $path_info_da     = '10';
     our $path_info_yr     = '2012';
+    our $url = 'http://localhost/blosxom.cgi';
 }
 
 local $ENV{QUERY_STRING}    = 'game=chess&game=checkers&weather=dull';
 local $ENV{HTTP_COOKIE}     = 'foo=123; bar=qwerty; baz=wibble; qux=a1';
 local $ENV{REQUEST_METHOD}  = 'GET';
 local $ENV{CONTENT_TYPE}    = 'utf-8';
-local $ENV{HTTP_REFERER}    = 'http://blosxom.com';
+local $ENV{HTTP_REFERER}    = 'http://www.blosxom.com/';
 local $ENV{HTTP_USER_AGENT} = 'Chrome';
 
 my $plugin = 'Blosxom::Plugin::Request';
-my $req = $plugin->instance;
-isa_ok $req, $plugin;
-can_ok $req, qw(
-    method cookies content_type referer user_agent address
-    remote_host cookies param path_info server_protocol user uploads
+my $request = $plugin->instance;
+isa_ok $request, $plugin;
+can_ok $request, qw(
+    method cookie content_type referer user_agent address
+    remote_host param path_info protocol user upload base
+    is_secure header
 );
 
-is $req->method,       'GET';
-is $req->content_type, 'utf-8';
-is $req->referer,      'http://blosxom.com';
-is $req->user_agent,   'Chrome';
-is $req->address,      '127.0.0.1';
-is $req->remote_host,  'localhost';
-is $req->server_protocol,  'HTTP/1.0';
-is $req->user, undef;
+is $request->method,       'GET';
+is $request->content_type, 'utf-8';
+is $request->referer,      'http://www.blosxom.com/';
+is $request->user_agent,   'Chrome';
+is $request->address,      '127.0.0.1';
+is $request->remote_host,  'localhost';
+is $request->protocol,     'HTTP/1.0';
+is $request->user,         undef;
+is $request->base,         'http://localhost/blosxom.cgi';
 
-is $req->cookies( 'bar' ), 'qwerty';
+is $request->cookie( 'foo' ), 123;
+is_deeply [ sort $request->cookie ], [qw/bar baz foo qux/];
 
-is $req->param( 'game' ), 'chess';
-my @got = sort $req->param( 'game' );
-is_deeply \@got, [ 'checkers', 'chess' ];
-@got = sort $req->param;
-is_deeply \@got, [ 'game', 'weather' ];
+is $request->param( 'game' ), 'chess';
+is_deeply [ sort $request->param('game') ], [ 'checkers', 'chess' ];
+is_deeply [ sort $request->param ], [ 'game', 'weather' ];
 
-is_deeply $req->path_info, {
+is_deeply $request->path_info, {
     full   => '/foo/bar.html',
     mo     => 'Jul',
     mo_num => '07',
     da     => '10',
     yr     => '2012',
 };
+
+local $ENV{HTTPS} = 'on';
+ok $request->is_secure;
+
+local $ENV{HTTP_ACCEPT_LANGUAGE} = 'da, en-gb;q=0.8, en;q=0.7';
+is $request->header( 'Accept-Language' ), 'da, en-gb;q=0.8, en;q=0.7';

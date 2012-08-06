@@ -1,7 +1,7 @@
 use strict;
 use FindBin;
 use Blosxom::Plugin::Request;
-use Test::More tests => 6;
+use Test::More tests => 8;
 
 # Stolen from CGI.pm
 
@@ -36,15 +36,21 @@ open STDIN, "< $FindBin::Bin/upload_post_text.txt"
 binmode STDIN;
 
 my $request = Blosxom::Plugin::Request->instance;
-my $file = $request->uploads( '300x300_gif' );
+
+my @got = sort $request->upload;
+my @expected = qw(
+    100;100_gif        300x300_gif
+    does_not_exist_gif hello_world
+);
+is_deeply \@got, \@expected;
+
+my $file = $request->upload( '300x300_gif' );
 is $file->content_type, 'image/gif';
 is $file->size, 1656;
 is $file->filename, '300x300.gif';
 is $file->basename, '300x300.gif';
+isa_ok $file->fh, 'IO::File';
 
-my @hello_names = $request->uploads( 'hello_world' );
+my @hello_names = $request->upload( 'hello_world' );
 is $hello_names[0]->filename, 'goodbye_world.txt';
 is $hello_names[1]->filename, 'hello_world.txt';
-
-#use Data::Dumper;
-#die Dumper( \@hello_names );

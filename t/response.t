@@ -1,6 +1,6 @@
 use strict;
 use Blosxom::Plugin::Response;
-use Test::More tests => 11;
+use Test::More tests => 15;
 
 {
     package blosxom;
@@ -9,28 +9,39 @@ use Test::More tests => 11;
 }
 
 my $plugin = 'Blosxom::Plugin::Response';
-my $res = $plugin->instance;
-isa_ok $res, $plugin;
-can_ok $res, qw(
-    body header status content_type cookies redirect location
+my $response = $plugin->instance;
+isa_ok $response, $plugin;
+can_ok $response, qw(
+    body header status content_type cookie redirect location
     content_length content_encoding
 );
 
-is $res->body, 'foo';
+is $response->body, 'foo';
+$response->body( 'bar' );
+is $response->body, 'bar';
 
-isa_ok $res->header, 'Blosxom::Header';
-is $res->content_type, 'text/html';
+isa_ok $response->header, 'Blosxom::Header';
+is $response->content_type, 'text/html';
 
-$res->redirect( 'http://blosxom.com' );
-is $res->header->get( 'Location' ), 'http://blosxom.com';
-is $res->header->status, 301;
+is $response->status, undef;
+$response->status( 200 );
+ok $response->status == 200;
 
-is $res->location, 'http://blosxom.com';
-$res->location( 'http://cpan.org' );
-is $res->location, 'http://cpan.org';
+$response->redirect( 'http://www.blosxom.com/' );
+is $response->header->{Location}, 'http://www.blosxom.com/';
+is $response->header->status, 302;
 
-$res->content_length( 123 );
-is $res->content_length, 123;
+$response->redirect( 'http://www.blosxom.com/', 301 );
+is $response->header->status, 301;
 
-$res->content_encoding( 'gzip' );
-is $res->content_encoding, 'gzip';
+$response->location( 'http://www.cpan.org/' );
+is $response->location, 'http://www.cpan.org/';
+
+$response->content_length( 123 );
+is $response->content_length, 123;
+
+$response->content_encoding( 'gzip' );
+is $response->content_encoding, 'gzip';
+
+$response->cookie( ID => 123456 );
+is $response->cookie( 'ID' )->value, 123456;
