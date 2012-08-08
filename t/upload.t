@@ -49,7 +49,7 @@ is $file->content_type, 'image/gif';
 is $file->size, 1656;
 is $file->filename, '300x300.gif';
 is $file->basename, '300x300.gif';
-isa_ok $file->fh, 'IO::File';
+isa_ok $file->fh, 'Fh'; # See CGI.pm
 
 my @hello_names = $request->upload( 'hello_world' );
 is $hello_names[0]->filename, 'goodbye_world.txt';

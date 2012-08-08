@@ -1,6 +1,6 @@
 use strict;
 use Blosxom::Plugin::Request;
-use Test::More tests => 19;
+use Test::More tests => 20;
 
 {
     package blosxom;
@@ -25,7 +25,7 @@ isa_ok $request, $plugin;
 can_ok $request, qw(
     method cookie content_type referer user_agent address
     remote_host param path_info protocol user upload base
-    is_secure header
+    is_secure header date
 );
 
 is $request->method,       'GET';
@@ -45,12 +45,11 @@ is $request->param( 'game' ), 'chess';
 is_deeply [ sort $request->param('game') ], [ 'checkers', 'chess' ];
 is_deeply [ sort $request->param ], [ 'game', 'weather' ];
 
-is_deeply $request->path_info, {
-    full   => '/foo/bar.html',
-    mo     => 'Jul',
-    mo_num => '07',
-    da     => '10',
-    yr     => '2012',
+is $request->path_info, '/foo/bar.html';
+is_deeply $request->date, {
+    month => '07',
+    day   => '10',
+    year  => '2012',
 };
 
 local $ENV{HTTPS} = 'on';

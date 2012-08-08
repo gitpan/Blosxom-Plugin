@@ -5,17 +5,26 @@ use Data::Section::Simple;
 
 sub begin {
     my ( $class, $c, $conf ) = @_;
-    my $data_section = $class->new( $c );
-    $c->add_method( data_section => sub { $data_section } );
+    $c->add_method( data_section => \&instance );
 }
 
-sub new {
-    my ( $class, $plugin ) = @_;
-    my $reader = Data::Section::Simple->new( $plugin );
-    my $self = $reader->get_data_section;
-    bless $self, $class;
-}
+my $instance;
 
-sub get { shift->{ $_[0] } }
+sub instance { $instance ||= bless {} }
+
+sub has_instance { $instance }
+
+sub get {
+    my $self   = shift;
+    my $name   = shift;
+    my $caller = caller;
+
+    unless ( exists $self->{$caller} ) {
+        my $reader = Data::Section::Simple->new( $caller );
+        $self->{$caller} = $reader->get_data_section;
+    }
+
+    $self->{$caller}->{$name};
+}
 
 1;

@@ -5,36 +5,44 @@ use File::Spec::Unix;
 
 sub new {
     my ( $class, %args ) = @_;
-    my $self = bless {}, $class;
-    my @keys = qw( filename fh header tempname );
-    @{ $self }{ @keys } = delete @args{ @keys };
-    $self;
+
+    my %header;
+    if ( my $header = delete $args{header} ) {
+        my @fields = map { lc $_ } keys %{ $header };
+        @header{ @fields } = values %{ $header };
+    }
+
+    my %self = (
+        header => \%header,
+        fh     => delete $args{fh},
+        path   => delete $args{path},
+    );
+
+    bless \%self, $class;
 }
 
-sub path     { shift->{tempname} }
-sub filename { shift->{filename} }
-sub fh       { shift->{fh}       }
+sub path { shift->{path} }
 
-sub content_type { shift->{header}->{'Content-Type'} }
+sub fh       { $_[0]->{fh}    }
+sub size     { -s $_[0]->{fh} }
+sub filename { "$_[0]->{fh}"  }
 
-sub size {
-    my $self = shift;
-    return $self->{size} if exists $self->{size};
-    $self->{size} = -s $self->{fh};
+sub content_type { shift->{header}->{'content-type'} }
+
+sub header {
+    my ( $self, $field ) = @_;
+    $field =~ tr/_A-Z/-a-z/;
+    $self->{header}->{$field};
 }
 
 # Stolen from Plack::Request::Upload
 sub basename {
     my $self = shift;
-
-    unless ( exists $self->{basename} ) {
-        ( my $basename = $self->{filename} ) =~ s{\\}{/}g;
-        $basename = ( File::Spec::Unix->splitpath($basename) )[2];
-        $basename =~ s{[^\w\.-]+}{_}g;
-        return $self->{basename} = $basename;
-    }
-
-    $self->{basename};
+    my $basename = $self->filename;
+    $basename =~ s{\\}{/}g;
+    $basename = ( File::Spec::Unix->splitpath($basename) )[2];
+    $basename =~ s{[^\w\.-]+}{_}g;
+    $basename;
 }
 
 1;
@@ -70,7 +78,16 @@ Returns the size of uploaded file in bytes.
 
 =item $upload->fh
 
-Returns a read-only L<IO::File> handle on the temporary file.
+Returns a read-only file handle on the temporary file.
+
+  my $fh = $upload->fh;
+
+  # Upgrade to IO::Handle
+  my $handle = $fh->handle;
+
+  # Upgrade to IO::File
+  use IO::File;
+  my $file = IO::File->new_from_fd( fileno $fh, '<' );
 
 =item $upload->path
 
@@ -88,11 +105,9 @@ Returns the original filename in the client.
 
 Returns basename for C<filename>.
 
+=item $upload->header
+
 =back
-
-=head1 HISTORY
-
-This module was forked from L<Plack::Request::Upload>.
 
 =head1 SEE ALSO
 

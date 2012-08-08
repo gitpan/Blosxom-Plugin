@@ -129,7 +129,7 @@ A shortcut for C<< $response->header->status >>.
 
 =item $response->content_type
 
-A shortcut for C<< $response->header->type >>.
+A shortcut for C<< $response->header->content_type >>.
 
 =item $response->cookie
 

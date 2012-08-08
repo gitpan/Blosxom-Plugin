@@ -1,5 +1,14 @@
 Revision history for Perl extension Blosxom::Plugin.
 
+0.00007  Aug 8th, 2012
+  - Add interpolate() and get_template()
+  - [Request]
+        * Add date()
+        * path_info() returns a value of $blosxom::path_info
+  - [Request::Upload]
+        * fh() returns a raw file handle
+        * Add header()
+
 0.00006  Aug 6th, 2012
   - [Response]
         * Rename cookies() to cookie()

@@ -1,6 +1,7 @@
 package Blosxom::Plugin::Request;
 use strict;
 use warnings;
+use Blosxom::Plugin::Request::Upload;
 use CGI;
 
 sub begin {
@@ -11,22 +12,33 @@ sub begin {
 
 my $instance;
 
-sub instance { $instance ||= bless { query => CGI->new } }
+sub instance {
+    my $class = shift;
+
+    return $class    if ref $class;
+    return $instance if defined $instance;
+
+    my %self = (
+        query     => CGI->new,
+        path_info => $blosxom::path_info,
+        flavour   => $blosxom::flavour,
+        base      => $blosxom::url,
+        date => {
+            day   => $blosxom::path_info_da,
+            month => $blosxom::path_info_mo_num,
+            year  => $blosxom::path_info_yr,
+        },
+    );
+
+    $instance = bless \%self;
+}
 
 sub has_instance { $instance }
 
-sub path_info {
-    return shift->{path_info} ||= +{
-        full   => $blosxom::path_info,
-        yr     => $blosxom::path_info_yr,
-        mo_num => $blosxom::path_info_mo_num,
-        mo     => $blosxom::path_info_mo,
-        da     => $blosxom::path_info_da,
-    };
-}
-
-sub flavour { shift->{flavour} ||= $blosxom::flavour }
-sub base    { shift->{base}    ||= $blosxom::url     }
+sub path_info { shift->{path_info} }
+sub date      { shift->{date}      }
+sub flavour   { shift->{flavour}   }
+sub base      { shift->{base}      }
 
 sub header    { shift->{query}->http( @_ )   }
 sub is_secure { scalar shift->{query}->https }
@@ -69,18 +81,14 @@ sub upload {
     my $query = $self->{query};
 
     unless ( exists $self->{upload} ) {
-        require Blosxom::Plugin::Request::Upload;
-        require IO::File;
-
         my %upload;
         for my $field ( $query->param ) {
             my @uploads;
-            for my $file ( $query->upload($field) ) {
+            for my $fh ( $query->upload($field) ) {
                 push @uploads, Blosxom::Plugin::Request::Upload->new(
-                    filename => "$file",
-                    fh       => IO::File->new_from_fd( fileno $file, '<' ),
-                    tempname => $query->tmpFileName( $file ),
-                    header  => $query->uploadInfo( $file ),
+                    fh     => $fh,
+                    path   => $query->tmpFileName( $fh ),
+                    header => $query->uploadInfo( $fh ),
                 );
             }
 
@@ -118,10 +126,10 @@ Blosxom::Plugin::Request - Object representing CGI request
   my $request = Blosxom::Plugin::Request->instance;
 
   my $method = $request->method; # GET
-  my $path_info_mo_num = $request->path_info->{mo_num}; # '07'
+  my $path_info = $request->path_info; # /foo/bar.html
   my $flavour = $request->flavour; # rss
   my $page = $request->param( 'page' ); # 12
-  my $id = $request->cookie->{ID}; # 123456
+  my $id = $request->cookie( 'ID' ); # 123456
 
 =head1 DESCRIPTION
 
@@ -152,16 +160,25 @@ Returns a reference to any existing instance or C<undef> if none is defined.
 
 =item $request->base
 
+  $blosxom::url
+
 =item $request->path_info
+
+  $blosxom::path_info
+
+=item $request->date
+
+  $request->date->{year};  # $blosxom::path_info_yr
+  $request->date->{month}; # $blosxom::path_info_mo_num
+  $request->date->{day};   # $blosxom::path_info_da
 
 =item $request->flavour
 
+  $blosxom::flavour
+
 =item $request->cookie
 
-Returns a reference to a hash containing the cookies.
-Values are strings that are sent by clients.
-
-  my $id = $request->cookie->{ID}; # 123456
+  my $id = $request->cookie( 'ID' ); # 123456
 
 =item $request->param
 
@@ -195,7 +212,7 @@ Returns the C<HTTP_USER_AGENT> variable. If you give this method a single
 argument, it will attempt to pattern match on it, allowing you to do
 something like:
 
-  if ( $request->user_agent( 'Mozilla' ) ) {
+  if ( $request->user_agent('Mozilla') ) {
       ...
   }
 
@@ -214,6 +231,8 @@ if this script is protected (C<REMOTE_USER>).
 Returns the protocol (HTTP/1.0 or HTTP/1.1) used for the current request.
 
 =item $request->upload
+
+Returns L<Blosxom::Plugin::Request::Upload> objects.
 
   my $upload = $request->upload( 'field' );
   my @uploads = $request->upload( 'field' );

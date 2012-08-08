@@ -2,11 +2,35 @@ package Blosxom::Plugin;
 use 5.008_009;
 use strict;
 use warnings;
-use Class::Load;
 
-our $VERSION = '0.00006';
+our $VERSION = '0.00007';
 
 __PACKAGE__->load_plugins( qw/Util Request Response/ );
+
+sub interpolate {
+    my ( $class, $template ) = @_;
+
+    if ( ref $blosxom::interpolate eq 'CODE' ) {
+        return $blosxom::interpolate->( $template );
+    }
+
+    return;
+}
+
+sub get_template {
+    my $class = shift;
+    my %args  = @_ == 1 ? ( component => shift ) : @_;
+
+    $args{component} ||= $class;
+    $args{path}      ||= $class->request->path_info;
+    $args{flavour}   ||= $class->request->flavour;
+
+    if ( ref $blosxom::template eq 'CODE' ) {
+        return $blosxom::template->( @args{qw/path component flavour/} );
+    }
+
+    return;
+}
 
 sub load_plugins {
     my $class = shift;
@@ -25,10 +49,12 @@ sub load_plugin {
     my $plugin = join '::', __PACKAGE__, shift;
     my $config = ref $_[0] eq 'HASH' ? shift : undef;
 
-    if ( Class::Load::try_load_class($plugin) ) {
-        if ( $plugin->can('begin') ) {
-            $plugin->begin( $class, $config );
-        }
+    # load class
+    ( my $file = $plugin ) =~ s{::}{/}g;
+    require "$file.pm";
+
+    if ( $plugin->can('begin') ) {
+        $plugin->begin( $class, $config );
     }
 
     return;
@@ -72,6 +98,8 @@ Blosxom::Plugin - Base class for Blosxom plugins
       my $path_info = $class->request->path_info;
       my $month = $class->util->num2month( 7 ); # Jul
       my $template = $class->data_section->get( 'foo.html' );
+      my $interpolated = $class->interpolate( $template );
+      my $component = $class->get_template( 'component' );
   }
 
   1;
@@ -95,10 +123,43 @@ Blosxom::Plugin - Base class for Blosxom plugins
 =head1 DESCRIPTION
 
 Base class for Blosxom plugins.
+Inspired by Blosxom 3 which was abandoned to be released.
 
 =head2 METHODS
 
 =over 4
+
+=item $interpolated = $class->interpolte( $template )
+
+A shorcut for
+
+  $interpolated = $blosxom::interpolate->( $template );
+
+=item $template = $class->get_template 
+
+A shortcut for
+
+  $template = $blosxom::template->(
+      $blosxom::path_info,
+      $class,
+      $blosxom::flavour,
+  );
+
+=item $template = $class->get_template( $component )
+
+A shortcut for
+
+  $template = $blosxom::template->(
+      $blosxom::path_info,
+      $component,
+      $blosxom::flavour,
+  );
+
+=item $template = $class->get_template(path=>$p, component=>$c, flavour=>$f)
+
+A shortcut for
+
+  $template = $blosxom::template->( $p, $c, $f )
 
 =item response, res
 

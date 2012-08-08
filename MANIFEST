@@ -19,6 +19,8 @@ META.yml
 README
 t/basic.t
 t/compile.t
+t/get_template.t
+t/interpolate.t
 t/lib/Blosxom/Plugin/Bar.pm
 t/lib/Blosxom/Plugin/DataSection.pm
 t/lib/Blosxom/Plugin/Foo.pm

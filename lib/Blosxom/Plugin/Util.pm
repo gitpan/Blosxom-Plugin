@@ -10,10 +10,29 @@ sub begin {
 my $instance;
 
 sub instance {
-    return $instance ||= bless {
+    my $class = shift;
+
+    return $class    if ref $class;
+    return $instance if defined $instance;
+
+    my %self = (
         month2num   => \%blosxom::month2num,
         num2month   => \@blosxom::num2month,
+        encode_html => blosxom->can( 'blosxom_html_escape' ),
+    );
+
+    # Provide backward compatibility for Blosxom 2.0
+    $self{encode_html} ||= sub {
+        my $str = shift;
+        $str =~ s/&/&amp;/g;
+        $str =~ s/>/&gt;/g;
+        $str =~ s/</&lt;/g;
+        $str =~ s/"/&quot;/g;
+        $str =~ s/'/&apos;/g;
+        $str;
     };
+
+    $instance = bless \%self;
 }
 
 sub has_instance { $instance }
@@ -21,28 +40,7 @@ sub has_instance { $instance }
 sub month2num { shift->{month2num}->{ $_[0] } }
 sub num2month { shift->{num2month}->[ $_[0] ] }
 
-sub encode_html {
-    my ( $self, $str ) = @_;
-
-    unless ( exists $self->{encode_html} ) {
-        if ( blosxom->can( 'blosxom_html_escape' ) ) {
-            $self->{encode_html} = \&blosxom::blosxom_html_escape;
-        }
-        else { # for Blosxom 2.0
-            $self->{encode_html} = sub {
-                my $str = shift;
-                $str =~ s/&/&amp;/g;
-                $str =~ s/>/&gt;/g;
-                $str =~ s/</&lt;/g;
-                $str =~ s/"/&quot;/g;
-                $str =~ s/'/&apos;/g;
-                $str;
-            };
-        }
-    }
-
-    $self->{encode_html}->( $str );
-}
+sub encode_html { $_[0]->{encode_html}->( $_[1] ) }
 
 1;
 
