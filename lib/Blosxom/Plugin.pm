@@ -3,11 +3,11 @@ use 5.008_009;
 use strict;
 use warnings;
 
-our $VERSION = '0.00007';
+our $VERSION = '0.00008';
 
 __PACKAGE__->load_plugins( qw/Util Request Response/ );
 
-sub interpolate {
+sub render {
     my ( $class, $template ) = @_;
 
     if ( ref $blosxom::interpolate eq 'CODE' ) {
@@ -98,7 +98,7 @@ Blosxom::Plugin - Base class for Blosxom plugins
       my $path_info = $class->request->path_info;
       my $month = $class->util->num2month( 7 ); # Jul
       my $template = $class->data_section->get( 'foo.html' );
-      my $interpolated = $class->interpolate( $template );
+      my $rendered = $class->render( $template );
       my $component = $class->get_template( 'component' );
   }
 
@@ -125,15 +125,23 @@ Blosxom::Plugin - Base class for Blosxom plugins
 Base class for Blosxom plugins.
 Inspired by Blosxom 3 which was abandoned to be released.
 
+=head2 BACKGROUND
+
+Blosxom globalizes a lot of variables.
+This module assigns them to appropriate namespaces
+like 'Request', 'Response' or 'Config'.
+In addition, it's intended that Blosxom::Plugin::* namespace will abstract
+routines from Blosxom plugins.
+
 =head2 METHODS
 
 =over 4
 
-=item $interpolated = $class->interpolte( $template )
+=item $rendered = $class->render( $template )
 
 A shorcut for
 
-  $interpolated = $blosxom::interpolate->( $template );
+  $rendered = $blosxom::interpolate->( $template );
 
 =item $template = $class->get_template 
 

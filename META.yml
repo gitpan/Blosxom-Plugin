@@ -23,12 +23,15 @@ no_index:
     - inc
     - t
     - xt
+  package:
+    - Fh
 requires:
   Blosxom::Header: 0.06001
   CGI: 0
   File::Spec::Unix: 0
+  IO::File: 0
   perl: 5.8.9
 resources:
   license: http://dev.perl.org/licenses/
   repository: https://github.com/anazawa/p5-Blosxom-Plugin
-version: 0.00007
+version: 0.00008

@@ -18,15 +18,16 @@ MANIFEST			This list of files
 META.yml
 README
 t/basic.t
+t/cgi_error.t
 t/compile.t
 t/get_template.t
-t/interpolate.t
 t/lib/Blosxom/Plugin/Bar.pm
 t/lib/Blosxom/Plugin/DataSection.pm
 t/lib/Blosxom/Plugin/Foo.pm
 t/not_found.t
 t/plugin.t
 t/plugins/not_found
+t/render.t
 t/request.t
 t/response.t
 t/upload.t

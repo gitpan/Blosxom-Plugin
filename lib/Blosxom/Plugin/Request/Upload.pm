@@ -45,6 +45,13 @@ sub basename {
     $basename;
 }
 
+package Fh; # See CGI.pm
+
+sub file {
+    require IO::File;
+    IO::File->new_from_fd( fileno $_[0], '<' );
+}
+
 1;
 
 __END__
@@ -85,9 +92,8 @@ Returns a read-only file handle on the temporary file.
   # Upgrade to IO::Handle
   my $handle = $fh->handle;
 
-  # Upgrade to IO::File
-  use IO::File;
-  my $file = IO::File->new_from_fd( fileno $fh, '<' );
+  # Upgrade to IO::File handle
+  my $file = $fh->file;
 
 =item $upload->path
 

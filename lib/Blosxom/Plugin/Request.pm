@@ -1,8 +1,6 @@
 package Blosxom::Plugin::Request;
 use strict;
 use warnings;
-use Blosxom::Plugin::Request::Upload;
-use CGI;
 
 sub begin {
     my ( $class, $c ) = @_;
@@ -17,6 +15,8 @@ sub instance {
 
     return $class    if ref $class;
     return $instance if defined $instance;
+
+    require CGI;
 
     my %self = (
         query     => CGI->new,
@@ -53,27 +53,15 @@ sub protocol     { shift->{query}->server_protocol  }
 sub user         { shift->{query}->remote_user      }
 
 sub cookie {
-    my $self  = shift;
-    my $query = $self->{query};
-
-    if ( @_ == 1 ) {
-        my $name = shift;
-        return $query->cookie( $name );
-    }
-
-    $query->cookie;
+    my $self = shift;
+    return $self->{query}->cookie( shift ) if @_;
+    $self->{query}->cookie;
 }
 
 sub param {
-    my $self  = shift;
-    my $query = $self->{query};
-
-    if ( @_ == 1 ) {
-        my $field = shift;
-        return $query->param( $field );
-    }
-    
-    $query->param;
+    my $self = shift;
+    return $self->{query}->param( shift ) if @_;
+    $self->{query}->param;
 }
 
 sub upload {
@@ -81,15 +69,19 @@ sub upload {
     my $query = $self->{query};
 
     unless ( exists $self->{upload} ) {
+        require Blosxom::Plugin::Request::Upload;
+
         my %upload;
         for my $field ( $query->param ) {
             my @uploads;
             for my $fh ( $query->upload($field) ) {
-                push @uploads, Blosxom::Plugin::Request::Upload->new(
+                my $upload = Blosxom::Plugin::Request::Upload->new(
                     fh     => $fh,
                     path   => $query->tmpFileName( $fh ),
                     header => $query->uploadInfo( $fh ),
                 );
+
+                push @uploads, $upload;
             }
 
             $upload{ $field } = \@uploads if @uploads;
@@ -98,7 +90,7 @@ sub upload {
         $self->{upload} = \%upload;
     }
 
-    if ( @_ == 1 ) {
+    if ( @_ ) {
         my $field = shift;
         if ( my $uploads = $self->{upload}->{$field} ) {
             return wantarray ? @{ $uploads } : $uploads->[0];

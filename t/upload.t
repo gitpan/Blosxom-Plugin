@@ -1,7 +1,7 @@
 use strict;
 use FindBin;
 use Blosxom::Plugin::Request;
-use Test::More tests => 8;
+use Test::More tests => 10;
 
 # Stolen from CGI.pm
 
@@ -50,6 +50,8 @@ is $file->size, 1656;
 is $file->filename, '300x300.gif';
 is $file->basename, '300x300.gif';
 isa_ok $file->fh, 'Fh'; # See CGI.pm
+isa_ok $file->fh->handle, 'IO::Handle';
+isa_ok $file->fh->file, 'IO::File';
 
 my @hello_names = $request->upload( 'hello_world' );
 is $hello_names[0]->filename, 'goodbye_world.txt';

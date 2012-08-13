@@ -3,6 +3,7 @@ use strict;
 use warnings;
 use Blosxom::Header;
 use Carp qw/croak/;
+use CGI qw/cgi_error/;
 
 sub begin {
     my ( $class, $c, $conf ) = @_;
@@ -12,18 +13,33 @@ sub begin {
 
 my $instance;
 
-sub instance { $instance ||= bless {} }
+sub instance {
+    my $class = shift;
+
+    return $class    if ref $class;
+    return $instance if defined $instance;
+
+    my %self = (
+        header => Blosxom::Header->instance,
+    );
+
+    if ( my $status = cgi_error() ) {
+        $self{header}->{Status} = $status;
+    }
+
+    $instance = bless \%self;
+}
 
 sub has_instance { $instance }
 
-sub header { shift->{header} ||= Blosxom::Header->instance }
+sub header { shift->{header} }
 
-sub status       { shift->header->status( @_ )       }
-sub content_type { shift->header->content_type( @_ ) }
+sub status       { shift->{header}->status( @_ )       }
+sub content_type { shift->{header}->content_type( @_ ) }
 
 sub cookie {
     my $self   = shift;
-    my $header = $self->header;
+    my $header = $self->{header};
 
     if ( @_ ) {
         if ( @_ == 1 ) {
@@ -44,26 +60,26 @@ sub cookie {
 
 sub content_length {
     my $self = shift;
-    return $self->header->{Content_Length} = shift if @_;
-    $self->header->{Content_Length};
+    return $self->{header}->{Content_Length} = shift if @_;
+    $self->{header}->{Content_Length};
 }
 
 sub content_encoding {
     my $self = shift;
-    return $self->header->{Content_Encoding} = shift if @_;
-    $self->header->{Content_Encoding};
+    return $self->{header}->{Content_Encoding} = shift if @_;
+    $self->{header}->{Content_Encoding};
 }
 
 sub location {
     my $self = shift;
-    return $self->header->{Location} = shift if @_;
-    $self->header->{Location};
+    return $self->{header}->{Location} = shift if @_;
+    $self->{header}->{Location};
 }
 
 sub redirect {
     my $self = shift;
-    $self->header->{Location} = shift;
-    $self->header->status( shift || 302 );
+    $self->{header}->{Location} = shift;
+    $self->{header}->status( shift || 302 );
 }
 
 sub body {

@@ -13,18 +13,18 @@ our $interpolate = sub {
     $template;
 };
 
-package interpolate;
+package render;
 use base 'Blosxom::Plugin';
 
 sub start { 1 }
 
 sub head {
     my $class = shift;
-    my $interpolated = $class->interpolate( 'This is $blog_title' );
+    my $rendered = $class->render( 'This is $blog_title' );
 }
 
 package main;
 
-my $plugin = 'interpolate';
+my $plugin = 'render';
 ok $plugin->start;
 is $plugin->head, 'This is My Weblog';
