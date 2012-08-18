@@ -4,8 +4,7 @@ use warnings;
 
 sub begin {
     my ( $class, $c ) = @_;
-    my $method = \&instance;
-    $c->add_method( $_ => $method ) for qw( request req );
+    $c->add_method( request => sub { $class->instance } );
 }
 
 my $instance;
@@ -134,7 +133,6 @@ Object representing CGI request.
 =item Blosxom::Plugin::Request->begin
 
 Exports C<instance()> into context class as C<request()>.
-C<req()> is an alias.
 
 =item $request = Blosxom::Plugin::Request->instance
 

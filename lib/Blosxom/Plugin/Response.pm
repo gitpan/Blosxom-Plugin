@@ -6,9 +6,8 @@ use Carp qw/croak/;
 use CGI qw/cgi_error/;
 
 sub begin {
-    my ( $class, $c, $conf ) = @_;
-    my $method = \&instance;
-    $c->add_method( $_ => $method ) for qw( response res );
+    my ( $class, $c ) = @_;
+    $c->add_method( response => sub { $class->instance } );
 }
 
 my $instance;
@@ -118,7 +117,6 @@ Object representing CGI response.
 =item Blosxom::Plugin::Response->begin
 
 Exports C<instance()> into context class as C<response()>.
-C<res()> is an alias.
 
 =item $response = Blosxom::Plugin::Response->instance
 

@@ -9,7 +9,7 @@ our $flavour   = 'html';
 our $template  = sub { join '|', @_ };
 
 package get_template;
-use base 'Blosxom::Plugin';
+use base 'Blosxom::Plugin::Core';
 
 sub start { 1 }
 
