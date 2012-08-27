@@ -2,43 +2,20 @@ package Blosxom::Plugin::Core;
 use strict;
 use warnings;
 use parent 'Blosxom::Plugin';
+use Carp qw/carp/;
 
-__PACKAGE__->load_components(qw/Util Request Response DataSection/);
+__PACKAGE__->load_components(
+    'Util',
+    'DataSection',
+    'Request',
+    'Response',
+);
 
 sub res { shift->response }
 sub req { shift->request  }
 
-sub get_template {
-    my $class = shift;
-    my %args  = @_ == 1 ? ( component => shift ) : @_;
-
-    $args{component} ||= $class;
-    $args{path}      ||= $class->request->path_info;
-    $args{flavour}   ||= $class->request->flavour;
-
-    if ( ref $blosxom::template eq 'CODE' ) {
-        return $blosxom::template->( @args{qw/path component flavour/} );
-    }
-
-    return;
-}
-
-sub render {
-    my ( $class, $basename ) = @_;
-
-    if ( ref $blosxom::interpolate eq 'CODE' ) {
-        if ( my ($component, $flavour) = $basename =~ /(.*)\.([^.]*)/ ) {
-            return $blosxom::interpolate->(
-                $class->get_template(
-                    component => $component,
-                    flavour   => $flavour,
-                )
-            );
-        }
-    }
-
-    return;
-}
+sub get_template { carp 'Deprecated' }
+sub render       { carp 'Deprecated' }
 
 1;
 
@@ -93,33 +70,15 @@ Returns a L<Blosxom::Plugin::Util> object.
 
 =item $class->data_section
 
-=item $rendered = $class->render( $basename )
+See L<Blosxom::Plugin::DataSection>.
+
+=item $rendered = $class->render
+
+Deprecated.
 
 =item $template = $class->get_template 
 
-A shortcut for
-
-  $template = $blosxom::template->(
-      $blosxom::path_info,
-      $class,
-      $blosxom::flavour,
-  );
-
-=item $template = $class->get_template( $component )
-
-A shortcut for
-
-  $template = $blosxom::template->(
-      $blosxom::path_info,
-      $component,
-      $blosxom::flavour,
-  );
-
-=item $template = $class->get_template(path=>$p, component=>$c, flavour=>$f)
-
-A shortcut for
-
-  $template = $blosxom::template->( $p, $c, $f )
+Deprecated.
 
 =back
 

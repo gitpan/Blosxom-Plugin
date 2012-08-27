@@ -1,5 +1,17 @@
 Revision history for Perl extension Blosxom::Plugin.
 
+0.00010  Aug 27th, 2012
+  - Blosxom::Plugin should be orthogonal to blosxom.cgi.
+    Methods which depend on $blosxom::* will be removed gradually
+  - Localize add_method()
+  - load_components() calls init() instead of begin()
+    when loads components
+  - [DataSection] Doesn't merge __DATA__ into Blosxom default templates
+    any more
+  - [Request] Remove date() and flavour(). path_info() and base() haven't
+    been implemented yet
+  - [Core] render() and get_template() are deprecated
+
 0.00009  Aug 18th, 2012
   - Remove load_plugin(). Rename load_plugins() to load_components()
   - Add Blosxom::Plugin::Core and Blosxom::Plugin::DataSection

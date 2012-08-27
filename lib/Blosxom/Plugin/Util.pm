@@ -2,9 +2,10 @@ package Blosxom::Plugin::Util;
 use strict;
 use warnings;
 
-sub begin {
+sub init {
     my ( $class, $c ) = @_;
-    $c->add_method( util => \&instance );
+    #$c->add_method( util => \&instance );
+    $c->add_method( util => sub { $class->instance } );
 }
 
 my $instance;

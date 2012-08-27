@@ -8,7 +8,7 @@ sub new {
 
     my %header;
     if ( my $header = delete $args{header} ) {
-        my @fields = map { lc $_ } keys %{ $header };
+        my @fields = map { lc } keys %{ $header };
         @header{ @fields } = values %{ $header };
     }
 
@@ -38,8 +38,7 @@ sub header {
 # Stolen from Plack::Request::Upload
 sub basename {
     my $self = shift;
-    my $basename = $self->filename;
-    $basename =~ s{\\}{/}g;
+    ( my $basename = $self->filename ) =~ s{\\}{/}g;
     $basename = ( File::Spec::Unix->splitpath($basename) )[2];
     $basename =~ s{[^\w\.-]+}{_}g;
     $basename;

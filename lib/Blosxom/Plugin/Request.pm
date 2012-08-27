@@ -1,43 +1,30 @@
 package Blosxom::Plugin::Request;
 use strict;
 use warnings;
+use CGI;
+use Carp qw/carp/;
 
-sub begin {
+sub init {
     my ( $class, $c ) = @_;
-    $c->add_method( request => sub { $class->instance } );
+    $c->add_method( request => \&_request );
 }
+
+sub _request { __PACKAGE__->instance }
 
 my $instance;
 
 sub instance {
     my $class = shift;
-
-    return $class    if ref $class;
-    return $instance if defined $instance;
-
-    require CGI;
-
-    my %self = (
-        query     => CGI->new,
-        path_info => $blosxom::path_info,
-        flavour   => $blosxom::flavour,
-        base      => $blosxom::url,
-        date => {
-            day   => $blosxom::path_info_da,
-            month => $blosxom::path_info_mo_num,
-            year  => $blosxom::path_info_yr,
-        },
-    );
-
-    $instance = bless \%self;
+    $instance ||= bless { query => CGI->new }, $class;
 }
 
 sub has_instance { $instance }
 
-sub path_info { shift->{path_info} }
-sub date      { shift->{date}      }
-sub flavour   { shift->{flavour}   }
-sub base      { shift->{base}      }
+sub path_info { carp 'Not implemented yet' }
+sub base      { carp 'Not implemented yet' }
+
+sub date    { carp 'Obsolete' }
+sub flavour { carp 'Obsolete' }
 
 sub header    { shift->{query}->http( @_ )   }
 sub is_secure { scalar shift->{query}->https }
@@ -64,11 +51,11 @@ sub param {
 }
 
 sub upload {
-    my $self  = shift;
-    my $query = $self->{query};
+    my ( $self, $field ) = @_;
 
-    unless ( exists $self->{upload} ) {
+    $self->{upload} ||= do { 
         require Blosxom::Plugin::Request::Upload;
+        my $query = $self->{query};
 
         my %upload;
         for my $field ( $query->param ) {
@@ -86,12 +73,11 @@ sub upload {
             $upload{ $field } = \@uploads if @uploads;
         }
 
-        $self->{upload} = \%upload;
-    }
+        \%upload;
+    };
 
-    if ( @_ ) {
-        my $field = shift;
-        if ( my $uploads = $self->{upload}->{$field} ) {
+    if ( $field ) {
+        if ( my $uploads = $self->{upload}{$field} ) {
             return wantarray ? @{ $uploads } : $uploads->[0];
         }
     }
@@ -112,15 +98,21 @@ Blosxom::Plugin::Request - Object representing CGI request
 
 =head1 SYNOPSIS
 
-  use Blosxom::Plugin::Request;
+  package my_plugin;
+  use strict;
+  use warnings;
+  use parent 'Blosxom::Plugin';
 
-  my $request = Blosxom::Plugin::Request->instance;
+  __PACKAGE__->load_components( 'Request' );
 
-  my $method = $request->method; # GET
-  my $path_info = $request->path_info; # /foo/bar.html
-  my $flavour = $request->flavour; # rss
-  my $page = $request->param( 'page' ); # 12
-  my $id = $request->cookie( 'ID' ); # 123456
+  sub start {
+      my $class = shift;
+      my $method = $class->request->method; # GET
+      my $page = $class->request->param( 'page' ); # 12
+      my $id = $class->request->cookie( 'ID' ); # 123456
+  }
+
+  1;
 
 =head1 DESCRIPTION
 
@@ -130,13 +122,13 @@ Object representing CGI request.
 
 =over 4
 
-=item Blosxom::Plugin::Request->begin
+=item Blosxom::Plugin::Request->init
 
 Exports C<instance()> into context class as C<request()>.
 
 =item $request = Blosxom::Plugin::Request->instance
 
-Returns a current Blosxom::Header object instance or create a new one.
+Returns a current Blosxom::Plugin::Request object instance or create a new one.
 
 =item $request = Blosxom::Plugin::Request->has_instance
 
@@ -150,21 +142,19 @@ Returns a reference to any existing instance or C<undef> if none is defined.
 
 =item $request->base
 
-  $blosxom::url
+Not implemented yet.
 
 =item $request->path_info
 
-  $blosxom::path_info
+Not implemented yet.
 
 =item $request->date
 
-  $request->date->{year};  # $blosxom::path_info_yr
-  $request->date->{month}; # $blosxom::path_info_mo_num
-  $request->date->{day};   # $blosxom::path_info_da
+Deprecated.
 
 =item $request->flavour
 
-  $blosxom::flavour
+Deprecated.
 
 =item $request->cookie
 

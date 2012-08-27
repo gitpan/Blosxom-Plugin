@@ -5,7 +5,7 @@ use Blosxom::Header;
 use Carp qw/croak/;
 use CGI qw/cgi_error/;
 
-sub begin {
+sub init {
     my ( $class, $c ) = @_;
     $c->add_method( response => sub { $class->instance } );
 }

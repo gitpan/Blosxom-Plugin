@@ -8,9 +8,8 @@ use Test::More tests => 15;
     our $output = 'foo';
 }
 
-my $plugin = 'Blosxom::Plugin::Response';
-my $response = $plugin->instance;
-isa_ok $response, $plugin;
+my $response = Blosxom::Plugin::Response->instance;
+isa_ok $response, 'Blosxom::Plugin::Response';
 can_ok $response, qw(
     body header status content_type cookie redirect location
     content_length content_encoding

@@ -9,7 +9,11 @@ $INC{ "My/Component/$_.pm" }++ for 1..3;
 my @got;
 
 package My::Component;
-sub begin { push @got, [ @_ ] }
+
+sub init {
+    my ( $class, $c, $config ) = @_;
+    push @got, [ $class, $c, $config ];
+}
 
 package My::Component::1;
 use parent -norequire, 'My::Component';
@@ -23,16 +27,16 @@ use parent -norequire, 'My::Component';
 package MyPlugin;
 use parent 'Blosxom::Plugin';
 
-__PACKAGE__->load_components(qw/
-    +My::Component::1
-    +My::Component::2
-    +My::Component::3
-/);
+__PACKAGE__->load_components(
+    '+My::Component::1',
+    '+My::Component::2' => +{ opt => 2 },
+    '+My::Component::3',
+);
 
 package main;
 
 is_deeply \@got, [
-    [ 'My::Component::1', 'MyPlugin' ],
-    [ 'My::Component::2', 'MyPlugin' ],
-    [ 'My::Component::3', 'MyPlugin' ],
+    [ 'My::Component::1', 'MyPlugin', undef        ],
+    [ 'My::Component::2', 'MyPlugin', { opt => 2 } ],
+    [ 'My::Component::3', 'MyPlugin', undef        ],
 ];

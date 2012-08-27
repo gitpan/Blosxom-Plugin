@@ -3,43 +3,46 @@ use 5.008_009;
 use strict;
 use warnings;
 
-our $VERSION = '0.00009';
+our $VERSION = '0.00010';
 
 sub load_components {
-    my $context_class = shift;
-    my $base_class    = __PACKAGE__;
+    my $class  = shift;
+    my $prefix = __PACKAGE__;
+
+    my %method_of;
+
+    local *add_method = sub {
+        my ( $class, $method, $code ) = @_;
+        $method_of{ $method } = $code;
+        return;
+    };
 
     while ( @_ ) {
         my $component = do {
             my $class = shift;
 
-            # If a mofule name begins with a + character,
-            # considers it a fully qualified class name.
-            unless ( $class =~ s/^\+// or $class =~ /^$base_class/ ) {
-                $class = "$base_class\::$class";
+            unless ( $class =~ s/^\+// or $class =~ /^$prefix/ ) {
+                $class = "$prefix\::$class";
             }
 
-            # load class
             ( my $file = $class ) =~ s{::}{/}g;
             require "$file.pm";
 
             $class;
         };
 
-        $component->begin( $context_class );
+        my $config = ref $_[0] eq 'HASH' ? shift : undef;
+
+        $component->init( $class, $config );
     }
 
-    return;
-}
-
-sub add_method {
-    my $class  = shift;
-    my $method = join '::', $class, shift;
-    my $code   = shift;
-
-    if ( ref $code eq 'CODE' ) {
-        no strict 'refs';
-        *$method = $code;
+    while ( my ($method, $code) = each %method_of ) {
+        if ( ref $code eq 'CODE' ) {
+            unless ( defined &{"$class\::$method"} ) {
+                no strict 'refs';
+                *{ "$class\::$method" } = $code;
+            }
+        }
     }
 
     return;
@@ -55,37 +58,34 @@ Blosxom::Plugin - Base class for Blosxom plugins
 
 =head1 SYNOPSIS
 
-  package foo;
+  package my_plugin;
   use strict;
   use warnings;
   use parent 'Blosxom::Plugin';
 
   __PACKAGE__->load_components( 'DataSection' );
 
-  sub start { !$blosxom::static_entries }
-
-  sub last {
+  sub start {
       my $class = shift;
-      my $template = $class->data_section->{'foo.html'};
+      my $template = $class->data_section->{'my_plugin.html'};
   }
 
   1;
 
   __DATA__
 
-  @@ foo.html
+  @@ my_plugin.html
 
   <!DOCTYPE html>
   <html>
   <head>
     <meta charset="utf-8">
-    <title>Foo</title>
+    <title>My Plugin</title>
   </head>
   <body>
-  <h1>hello, world</h1>
+  <h1>Hello, world</h1>
   </body>
   </html>
-
 
 =head1 DESCRIPTION
 
@@ -104,15 +104,18 @@ routines from Blosxom plugins.
 
 =over 4
 
-
-=item load_components( @comps )
+=item $class->load_components( @comps )
 
 Loads the given components into the current module.
 If a module begins with a C<+> character,
 it is taken to be a fully qualified class name,
 otherwise C<Blosxom::Plugin> is prepended to it.
 
-=item add_method( $method => $coderef )
+=item $class->add_method( $method => $coderef )
+
+This method takes a method name and a subroutine reference,
+and adds the method to the class.
+Available while loading components.
 
 =back
 

@@ -13,6 +13,7 @@ requires 'IO::File';
 
 test_requires 'Test::More' => '0.98';
 test_requires 'Test::Pod';
+test_requires 'Test::Exception';
 
 no_index package => 'Fh';
 
