@@ -5,17 +5,18 @@ use Data::Section::Simple;
 
 sub init {
     my ( $class, $c ) = @_;
-    $c->add_method( data_section => \&_data_section );
+    $c->add_method( get_data_section => \&_get_data_section );
 }
 
 my %data_section_of;
 
-sub _data_section {
+sub _get_data_section {
     my ( $class, $name ) = @_;
     $data_section_of{ $class } ||= do {
         my $reader = Data::Section::Simple->new( $class );
         $reader->get_data_section || +{};
     };
+    $data_section_of{ $class }{ $name };
 }
 
 1;

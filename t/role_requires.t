@@ -15,22 +15,19 @@ package MyComponent; {
             die "Can't apply $class to $c";
         }
 
-        #unless ( $c->has_method('bar') ) {
-        unless ( $c->can('bar') ) {
-            $c->add_method( bar => sub { 'MyComponent bar' } );
-        }
-
-        #unless ( $c->has_method('baz') ) {
-        unless ( $c->can('baz') ) {
-            $c->add_method( baz => sub { 'MyComponent baz' } );
-        }
+        $c->add_method( bar => \&_bar );
+        $c->add_method( baz => \&_baz );
 
         return;
     }
+
+    sub _bar { 'MyComponent bar' }
+    sub _baz { 'MyComponent baz' }
 }
 
 package my_plugin; {
     use parent 'Blosxom::Plugin';
+
     __PACKAGE__->load_components( '+MyComponent' );
 
     sub req1 {}

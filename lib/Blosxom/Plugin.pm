@@ -2,23 +2,27 @@ package Blosxom::Plugin;
 use 5.008_009;
 use strict;
 use warnings;
+use Carp qw/croak/;
 
-our $VERSION = '0.00010';
+our $VERSION = '0.01000';
 
 sub load_components {
     my $class  = shift;
     my $prefix = __PACKAGE__;
 
-    my %method_of;
+    my ( $component, %has_conflict, %code_of );
 
     local *add_method = sub {
-        my ( $class, $method, $code ) = @_;
-        $method_of{ $method } = $code;
+        my ( $context, $method, $code ) = @_;
+        croak 'Not a CODE reference' unless ref $code eq 'CODE';
+        return if defined &{ "$context\::$method" };
+        push @{ $has_conflict{$method} ||= [] }, $component;
+        $code_of{ $method } = $code;
         return;
     };
 
     while ( @_ ) {
-        my $component = do {
+        $component = do {
             my $class = shift;
 
             unless ( $class =~ s/^\+// or $class =~ /^$prefix/ ) {
@@ -35,17 +39,29 @@ sub load_components {
 
         $component->init( $class, $config );
     }
+    
+    no strict 'refs';
 
-    while ( my ($method, $code) = each %method_of ) {
-        if ( ref $code eq 'CODE' ) {
-            unless ( defined &{"$class\::$method"} ) {
-                no strict 'refs';
-                *{ "$class\::$method" } = $code;
-            }
-        }
+    while ( my ($method, $components) = each %has_conflict ) {
+        next unless @{ $components } == 1;
+        *{ "$class\::$method" } = $code_of{ $method };
+        delete $has_conflict{ $method };
+    }
+
+    if ( %has_conflict ) {
+        croak join "\n", map {
+            "Due to a method name conflict between components " .
+            "'" . join( ' and ', sort @{ $has_conflict{$_} } ) . "', " .
+            "the method '$_' must be implemented by '$class'";
+        } keys %has_conflict;
     }
 
     return;
+}
+
+sub has_method {
+    my ( $class, $method ) = @_;
+    defined &{ "$class\::$method" };
 }
 
 1;
@@ -111,11 +127,32 @@ If a module begins with a C<+> character,
 it is taken to be a fully qualified class name,
 otherwise C<Blosxom::Plugin> is prepended to it.
 
+  package my_plugin;
+  use parent 'Blosxom::Plugin';
+  __PACKAGE__->load_components( '+MyComponent' );
+
+This method calls C<init()> method of each component.
+C<init()> is called as follows:
+
+  MyComponent->init( 'my_plugin' );
+
 =item $class->add_method( $method => $coderef )
 
 This method takes a method name and a subroutine reference,
 and adds the method to the class.
 Available while loading components.
+
+  package MyComponent;
+
+  sub init {
+      my ( $class, $context ) = @_;
+      $context->add_method( foo => sub { ... } );
+  }
+
+=item $bool = $class->has_method( $method )
+
+Returns a Boolean value telling whether or not the class defines the named
+method. It does not include methods inherited from parent classes.
 
 =back
 
@@ -125,7 +162,7 @@ L<Blosxom 2.0.0|http://blosxom.sourceforge.net/> or higher.
 
 =head1 SEE ALSO
 
-L<Blosxom::Plugin::Core>,
+L<Blosxom::Plugin::Web>,
 L<Amon2>
 
 =head1 ACKNOWLEDGEMENT

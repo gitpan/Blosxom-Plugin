@@ -1,6 +1,6 @@
 use strict;
 use FindBin;
-use Blosxom::Plugin::Request;
+use Blosxom::Plugin::Web::Request;
 use Test::More tests => 10;
 
 # Stolen from CGI.pm
@@ -35,7 +35,7 @@ open STDIN, "< $FindBin::Bin/upload_post_text.txt"
     or die 'missing test file t/upload_post_text.txt';
 binmode STDIN;
 
-my $request = Blosxom::Plugin::Request->instance;
+my $request = Blosxom::Plugin::Web::Request->new;
 
 my @got = sort $request->upload;
 my @expected = qw(

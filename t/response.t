@@ -1,5 +1,5 @@
 use strict;
-use Blosxom::Plugin::Response;
+use Blosxom::Plugin::Web::Response;
 use Test::More tests => 15;
 
 {
@@ -8,8 +8,8 @@ use Test::More tests => 15;
     our $output = 'foo';
 }
 
-my $response = Blosxom::Plugin::Response->instance;
-isa_ok $response, 'Blosxom::Plugin::Response';
+my $response = Blosxom::Plugin::Web::Response->new;
+isa_ok $response, 'Blosxom::Plugin::Web::Response';
 can_ok $response, qw(
     body header status content_type cookie redirect location
     content_length content_encoding

@@ -1,4 +1,4 @@
-package Blosxom::Plugin::Request::Upload;
+package Blosxom::Plugin::Web::Request::Upload;
 use strict;
 use warnings;
 use File::Spec::Unix;
@@ -35,7 +35,6 @@ sub header {
     $self->{header}->{$field};
 }
 
-# Stolen from Plack::Request::Upload
 sub basename {
     my $self = shift;
     ( my $basename = $self->filename ) =~ s{\\}{/}g;

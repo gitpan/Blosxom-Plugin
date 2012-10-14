@@ -14,4 +14,4 @@ require_ok "$FindBin::Bin/plugins/$plugin";
 ok $plugin->start;
 
 my $expected = "hello, world\n";
-is $plugin->data_section->{'data_section.html'}, $expected;
+is $plugin->get_data_section( 'data_section.html' ), $expected;

@@ -1,21 +1,40 @@
-package Blosxom::Plugin::Core;
+package Blosxom::Plugin::Web;
 use strict;
 use warnings;
 use parent 'Blosxom::Plugin';
 use Carp qw/carp/;
 
-__PACKAGE__->load_components(
-    'Util',
-    'DataSection',
-    'Request',
-    'Response',
-);
+__PACKAGE__->load_components( 'DataSection' );
 
-sub res { shift->response }
-sub req { shift->request  }
-
+sub util         { carp 'Deprecated' }
 sub get_template { carp 'Deprecated' }
 sub render       { carp 'Deprecated' }
+
+our ( $Request, $Response );
+
+sub request {
+    $Request ||= do {
+        require Blosxom::Plugin::Web::Request;
+        Blosxom::Plugin::Web::Request->new;
+    };
+}
+
+sub response {
+    $Response ||= do {
+        require Blosxom::Plugin::Web::Response;
+        Blosxom::Plugin::Web::Response->new;
+    };
+}
+
+BEGIN {
+    *req = \&request;
+    *res = \&response;
+}
+
+sub end {
+    undef $Response;
+    undef $Request;
+}
 
 1;
 
@@ -23,12 +42,12 @@ __END__
 
 =head1 NAME
 
-Blosxom::Plugin::Core - Core set of Blosxom::Plugin modules
+Blosxom::Plugin::Web - Core set of Blosxom::Plugin modules
 
 =head1 SYNOPSIS
 
   # In your plugins
-  use parent 'Blosxom::Plugin::Core';
+  use parent 'Blosxom::Plugin::Web';
 
 =head1 DESCRIPTION
 
@@ -39,13 +58,7 @@ The core components currently are:
 
 =over 4
 
-=item L<Blosxom::Plugin::Request>
-
-=item L<Blosxom::Plugin::Response>
-
 =item L<Blosxom::Plugin::DataSection>
-
-=item L<Blosxom::Plugin::Util>
 
 =back
 
@@ -58,17 +71,17 @@ and implements the following new ones.
 
 =item $class->response, $class->res
 
-Returns a L<Blosxom::Plugin::Response> object.
+Returns a L<Blosxom::Plugin::Web::Response> object.
 
 =item $class->request, $class->req
 
-Returns a L<Blosxom::Plugin::Request> object.
+Returns a L<Blosxom::Plugin::Web::Request> object.
 
 =item $class->util
 
-Returns a L<Blosxom::Plugin::Util> object.
+Deprecated.
 
-=item $class->data_section
+=item $class->get_data_section
 
 See L<Blosxom::Plugin::DataSection>.
 

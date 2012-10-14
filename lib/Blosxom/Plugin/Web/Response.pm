@@ -1,35 +1,23 @@
-package Blosxom::Plugin::Response;
+package Blosxom::Plugin::Web::Response;
 use strict;
 use warnings;
 use Blosxom::Header;
 use Carp qw/croak/;
 use CGI qw/cgi_error/;
 
-sub init {
-    my ( $class, $c ) = @_;
-    $c->add_method( response => sub { $class->instance } );
-}
-
-my $instance;
-
-sub instance {
+sub new {
     my $class = shift;
-
-    return $class    if ref $class;
-    return $instance if defined $instance;
 
     my %self = (
         header => Blosxom::Header->instance,
     );
 
     if ( my $status = cgi_error() ) {
-        $self{header}->{Status} = $status;
+        $self{header}{Status} = $status;
     }
 
-    $instance = bless \%self;
+    bless \%self, $class;
 }
-
-sub has_instance { $instance }
 
 sub header { shift->{header} }
 
@@ -93,13 +81,13 @@ __END__
 
 =head1 NAME
 
-Blosxom::Plugin::Response - Object representing CGI response
+Blosxom::Plugin::Web::Response - Object representing CGI response
 
 =head1 SYNOPSIS
 
-  use Blosxom::Plugin::Response;
+  use Blosxom::Plugin::Web::Response;
 
-  my $response = Blosxom::Plugin::Response->instance;
+  my $response = Blosxom::Plugin::Web::Response->new;
 
   my $header = $response->header; # Blosxom::Header object
   my $body = $response->body; # <!DOCTYPE html> ...
@@ -110,28 +98,13 @@ Blosxom::Plugin::Response - Object representing CGI response
 
 Object representing CGI response.
 
-=head2 CLASS METHODS
+=head2 METHODS
 
 =over 4
 
-=item Blosxom::Plugin::Response->begin
+=item $response = Blosxom::Plugin::Web::Response->new
 
-Exports C<instance()> into context class as C<response()>.
-
-=item $response = Blosxom::Plugin::Response->instance
-
-Returns a current Blosxom::Plugin::Response object instance or create a new
-one.
-
-=item $response = Blosxom::Plugin::Response->has_instance
-
-Returns a reference to any existing instance or C<undef> if none is defined.
-
-=back
-
-=head2 INSTANCE METHODS
-
-=over 4
+Creates a Blosxom::Plugin::Web::Response object.
 
 =item $response->header
 

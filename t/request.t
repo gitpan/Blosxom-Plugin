@@ -1,5 +1,5 @@
 use strict;
-use Blosxom::Plugin::Request;
+use Blosxom::Plugin::Web::Request;
 use Test::More tests => 17;
 
 local $ENV{QUERY_STRING}    = 'game=chess&game=checkers&weather=dull';
@@ -9,8 +9,8 @@ local $ENV{CONTENT_TYPE}    = 'utf-8';
 local $ENV{HTTP_REFERER}    = 'http://www.blosxom.com/';
 local $ENV{HTTP_USER_AGENT} = 'Chrome';
 
-my $plugin = 'Blosxom::Plugin::Request';
-my $request = $plugin->instance;
+my $plugin = 'Blosxom::Plugin::Web::Request';
+my $request = $plugin->new;
 isa_ok $request, $plugin;
 can_ok $request, qw(
     method cookie content_type referer user_agent address
