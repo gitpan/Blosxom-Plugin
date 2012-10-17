@@ -1,7 +1,7 @@
 package Blosxom::Plugin::Web::Response;
 use strict;
 use warnings;
-use Blosxom::Header;
+use Blosxom::Header; # FIXME
 use Carp qw/croak/;
 use CGI qw/cgi_error/;
 
@@ -69,10 +69,19 @@ sub redirect {
     $self->{header}->status( shift || 302 );
 }
 
+# FIXME
 sub body {
     my $self = shift;
     return $blosxom::output = shift if @_;
     $blosxom::output;
+}
+
+# FIXME
+sub DESTROY {
+    my $self = shift;
+    undef $blosxom::output;
+    undef $Blosxom::Header::INSTANCE;
+    return;
 }
 
 1;

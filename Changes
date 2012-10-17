@@ -1,5 +1,8 @@
 Revision history for Perl extension Blosxom::Plugin.
 
+0.01001  Oct 17th, 2012
+  - [DataSection] add merge_data_section_into()
+
 0.01000  Oct 14th, 2012
   - load_components() doesn't add_method() when the named method is defined
     by the context class, and also throws an exception

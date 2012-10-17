@@ -1,22 +1,38 @@
 package Blosxom::Plugin::DataSection;
 use strict;
 use warnings;
+use Carp qw/croak/;
 use Data::Section::Simple;
+
+my @exports = qw( data_section get_data_section merge_data_section_into );
 
 sub init {
     my ( $class, $c ) = @_;
-    $c->add_method( get_data_section => \&_get_data_section );
+    $c->add_method( $_ => \&{"_$_"} ) for @exports;
+    return;
 }
 
-my %data_section_of;
-
-sub _get_data_section {
-    my ( $class, $name ) = @_;
-    $data_section_of{ $class } ||= do {
+sub _data_section {
+    my $class = shift;
+    $class->instance->{data_section} ||= do {
         my $reader = Data::Section::Simple->new( $class );
-        $reader->get_data_section || +{};
+        $reader->get_data_section;
     };
-    $data_section_of{ $class }{ $name };
+}
+
+sub _get_data_section { shift->data_section->{$_[0]} }
+
+sub _merge_data_section_into {
+    my ( $class, $merge_into ) = @_;
+
+    croak 'Must provide a HASH reference' if ref $merge_into ne 'HASH';
+
+    while ( my ($basename, $template) = each %{ $class->data_section } ) {
+        my ( $chunk, $flavour ) = $basename =~ /(.*)\.([^.]*)/;
+        $merge_into->{ $flavour }{ $chunk } = $template;
+    }
+
+    return;
 }
 
 1;
@@ -38,7 +54,18 @@ Blosxom::Plugin::DataSection - Read data from __DATA__
 
   sub start {
       my $class = shift;
-      my $template = $class->data_section->{'my_plugin.html'};
+
+      # merge __DATA__ into Blosxom default templates
+      $class->merge_data_section_into( \%blosxom::template );
+
+      return 1;
+  }
+
+  sub head {
+      my $class = shift;
+      my $template = $class->get_data_section( 'my_plugin.html' );
+      $template = $blosxom::interpolate->( $template );
+      return;
   }
 
   1;
@@ -60,7 +87,8 @@ Blosxom::Plugin::DataSection - Read data from __DATA__
 
 =head1 DESCRIPTION
 
-This module extracts data from C<__DATA__> section of the plugin.
+This module extracts data from C<__DATA__> section of the plugin,
+and also merges them into Blosxom default templates.
 
 =head1 SEE ALSO
 

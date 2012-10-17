@@ -2,25 +2,20 @@ package Blosxom::Plugin::Web;
 use strict;
 use warnings;
 use parent 'Blosxom::Plugin';
-use Carp qw/carp/;
 
 __PACKAGE__->load_components( 'DataSection' );
 
-sub util         { carp 'Deprecated' }
-sub get_template { carp 'Deprecated' }
-sub render       { carp 'Deprecated' }
-
-our ( $Request, $Response );
-
 sub request {
-    $Request ||= do {
+    my $class = shift;
+    $class->instance->{request} ||= do {
         require Blosxom::Plugin::Web::Request;
         Blosxom::Plugin::Web::Request->new;
     };
 }
 
 sub response {
-    $Response ||= do {
+    my $class = shift;
+    $class->instance->{response} ||= do {
         require Blosxom::Plugin::Web::Response;
         Blosxom::Plugin::Web::Response->new;
     };
@@ -29,11 +24,6 @@ sub response {
 BEGIN {
     *req = \&request;
     *res = \&response;
-}
-
-sub end {
-    undef $Response;
-    undef $Request;
 }
 
 1;
@@ -82,6 +72,8 @@ Returns a L<Blosxom::Plugin::Web::Request> object.
 Deprecated.
 
 =item $class->get_data_section
+
+=item $class->merge_get_data_section_into
 
 See L<Blosxom::Plugin::DataSection>.
 

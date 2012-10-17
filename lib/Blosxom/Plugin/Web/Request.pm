@@ -78,6 +78,8 @@ sub upload {
     return;
 }
 
+sub DESTROY { CGI::initialize_globals() }
+
 1;
 
 __END__
@@ -102,9 +104,9 @@ Object representing CGI request.
 
 =over 4
 
-=item $request = Blosxom::Plugin::Web->new
+=item $request = Blosxom::Plugin::Web::Request->new
 
-Create a Blosxom::Plugin::Web object.
+Create a Blosxom::Plugin::Web::Request object.
 
 =item $request->base
 

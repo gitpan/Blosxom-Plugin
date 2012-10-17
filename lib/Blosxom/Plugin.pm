@@ -4,7 +4,20 @@ use strict;
 use warnings;
 use Carp qw/croak/;
 
-our $VERSION = '0.01000';
+our $VERSION = '0.01001';
+
+my %instance_of;
+
+sub instance {
+    my $class = shift; 
+    $instance_of{ $class } ||= bless {}, $class;
+}
+
+sub end {
+    my $class = shift;
+    delete $instance_of{ $class };
+    return;
+}
 
 sub load_components {
     my $class  = shift;
@@ -13,9 +26,8 @@ sub load_components {
     my ( $component, %has_conflict, %code_of );
 
     local *add_method = sub {
-        my ( $context, $method, $code ) = @_;
-        croak 'Not a CODE reference' unless ref $code eq 'CODE';
-        return if defined &{ "$context\::$method" };
+        my ( $class, $method, $code ) = @_;
+        return if defined &{ "$class\::$method" };
         push @{ $has_conflict{$method} ||= [] }, $component;
         $code_of{ $method } = $code;
         return;
@@ -39,13 +51,13 @@ sub load_components {
 
         $component->init( $class, $config );
     }
-    
-    no strict 'refs';
 
-    while ( my ($method, $components) = each %has_conflict ) {
-        next unless @{ $components } == 1;
-        *{ "$class\::$method" } = $code_of{ $method };
-        delete $has_conflict{ $method };
+    if ( %code_of ) {
+        no strict 'refs';
+        while ( my ($method, $components) = each %has_conflict ) {
+            delete $has_conflict{ $method } if @{ $components } == 1;
+            *{ "$class\::$method" } = $code_of{ $method };
+        }
     }
 
     if ( %has_conflict ) {
@@ -83,7 +95,15 @@ Blosxom::Plugin - Base class for Blosxom plugins
 
   sub start {
       my $class = shift;
-      my $template = $class->data_section->{'my_plugin.html'};
+
+      my $template = $class->get_data_section( 'my_plugin.html' );
+      # <!DOCTYPE html>
+      # ...
+
+      # merge __DATA__ into Blosxom default templates
+      $class->merge_data_section_into( \%blosxom::template );
+
+      return 1;
   }
 
   1;
@@ -122,19 +142,22 @@ routines from Blosxom plugins.
 
 =item $class->load_components( @comps )
 
+=item $class->load_components( $comp => \%config, ... )
+
 Loads the given components into the current module.
+Components can be parameterized by the consumers.
 If a module begins with a C<+> character,
 it is taken to be a fully qualified class name,
 otherwise C<Blosxom::Plugin> is prepended to it.
 
   package my_plugin;
   use parent 'Blosxom::Plugin';
-  __PACKAGE__->load_components( '+MyComponent' );
+  __PACKAGE__->load_components( '+MyComponent' => \%config );
 
 This method calls C<init()> method of each component.
 C<init()> is called as follows:
 
-  MyComponent->init( 'my_plugin' );
+  MyComponent->init( 'my_plugin', \%config )
 
 =item $class->add_method( $method => $coderef )
 
@@ -145,14 +168,29 @@ Available while loading components.
   package MyComponent;
 
   sub init {
-      my ( $class, $context ) = @_;
+      my ( $class, $context, $config ) = @_;
       $context->add_method( foo => sub { ... } );
   }
+
+If a method is already defined on the class, that method will not be composed
+in from the component.
+If multiple components are applied in a single call, then if any of their
+provided methods clash, an exception is raised unless the class provides
+the method.
 
 =item $bool = $class->has_method( $method )
 
 Returns a Boolean value telling whether or not the class defines the named
 method. It does not include methods inherited from parent classes.
+
+  my $requires = 'bar';
+
+  sub init {
+      my ( $class, $context ) = @_;
+      unless ( $context->has_method($requires) ) {
+          die "Cannot apply '$class' to '$context'";
+      }
+  }
 
 =back
 
@@ -163,7 +201,9 @@ L<Blosxom 2.0.0|http://blosxom.sourceforge.net/> or higher.
 =head1 SEE ALSO
 
 L<Blosxom::Plugin::Web>,
-L<Amon2>
+L<Amon2>,
+L<Moose::Manual::Roles>,
+L<MooseX::Role::Parameterized::Tutorial>
 
 =head1 ACKNOWLEDGEMENT
 

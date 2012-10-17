@@ -1,17 +1,27 @@
 use strict;
 use warnings;
-use FindBin;
-use Test::More tests => 3;
+use parent 'Blosxom::Plugin';
+use Test::More tests => 2;
 
 {
     package blosxom;
     our %template;
 }
 
-my $plugin = 'data_section';
+my $plugin = __PACKAGE__;
 
-require_ok "$FindBin::Bin/plugins/$plugin";
-ok $plugin->start;
+$plugin->load_components( 'DataSection' );
 
-my $expected = "hello, world\n";
-is $plugin->get_data_section( 'data_section.html' ), $expected;
+is $plugin->get_data_section( 'my_plugin.html' ), "hello, world\n";
+
+$plugin->merge_data_section_into( \%blosxom::template );
+
+is_deeply \%blosxom::template, {
+    html => {
+        my_plugin => "hello, world\n",
+    },
+};
+
+__DATA__
+@@ my_plugin.html
+hello, world

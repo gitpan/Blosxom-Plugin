@@ -1,20 +1,18 @@
 use strict;
+use parent 'Blosxom::Plugin::Web';
 use Test::More tests => 20;
 
 package blosxom;
 our $header = {};
 
-package plugin;
-use parent 'Blosxom::Plugin::Web';
-
 package main;
 
-my $class = 'plugin';
+my $class = __PACKAGE__;
 
 can_ok $class, qw(
     load_components
-    response res request req get_data_section
-    util get_template render
+    response res request req
+    get_data_section merge_data_section_into
 );
 
 my $res = $class->res;
@@ -34,7 +32,7 @@ isa_ok $request, 'Blosxom::Plugin::Web::Request';
 is $req, $request;
 
 SKIP: {
-    skip 'Web.pm implements end()', 13;
+    skip 'Plugin.pm implements end()', 13;
 
     my @reserved_methods = qw(
         start       template entries filter skip
