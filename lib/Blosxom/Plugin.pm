@@ -4,19 +4,35 @@ use strict;
 use warnings;
 use Carp qw/croak/;
 
-our $VERSION = '0.01001';
+our $VERSION = '0.01002';
 
 my %instance_of;
 
-sub instance {
-    my $class = shift; 
-    $instance_of{ $class } ||= bless {}, $class;
+sub make_accessor {
+    my ( $class, $field, $default ) = @_;
+    my $build = ref $default eq 'CODE' ? $default : sub { $default };
+    return sub {
+        my $self = $instance_of{ $class } ||= {};
+        return $self->{ $field } = $_[1] if @_ == 2;
+        return $self->{ $field } if exists $self->{ $field };
+        return $self->{ $field } = $class->$build;
+    };
 }
 
 sub end {
     my $class = shift;
     delete $instance_of{ $class };
     return;
+}
+
+sub mk_accessors {
+    my $class = shift;
+    no strict 'refs';
+    while ( @_ ) {
+        my $field = shift;
+        my $default = ref $_[0] eq 'CODE' ? shift : undef;
+        *{ "$class\::$field" } = $class->make_accessor( $field, $default );
+    }
 }
 
 sub load_components {
@@ -29,8 +45,15 @@ sub load_components {
         my ( $class, $method, $code ) = @_;
         return if defined &{ "$class\::$method" };
         push @{ $has_conflict{$method} ||= [] }, $component;
-        $code_of{ $method } = $code;
+        $code_of{ $method } = $code || $component->can( $method );
         return;
+    };
+
+    local *add_accessor = sub {
+        my ( $class, $field, $builder ) = @_;
+        $builder ||= $component->can( "_build_$field" );
+        my $accessor = $class->make_accessor( $field, $builder );
+        $class->add_method( $field => $accessor );
     };
 
     while ( @_ ) {
@@ -56,7 +79,7 @@ sub load_components {
         no strict 'refs';
         while ( my ($method, $components) = each %has_conflict ) {
             delete $has_conflict{ $method } if @{ $components } == 1;
-            *{ "$class\::$method" } = $code_of{ $method };
+            *{ "$class\::$method" } = delete $code_of{ $method };
         }
     }
 
@@ -91,17 +114,24 @@ Blosxom::Plugin - Base class for Blosxom plugins
   use warnings;
   use parent 'Blosxom::Plugin';
 
+  # generates foo()
+  __PACKAGE__->mk_accessors( 'foo' );
+
+  # does 'Blosxom::Plugin::DataSection'
   __PACKAGE__->load_components( 'DataSection' );
 
   sub start {
-      my $class = shift;
+      my $self = shift; # => "my_plugin"
 
-      my $template = $class->get_data_section( 'my_plugin.html' );
+      $self->foo( 'bar' );
+      my $value = $self->foo; # => "bar"
+
+      my $template = $self->get_data_section( 'my_plugin.html' );
       # <!DOCTYPE html>
       # ...
 
       # merge __DATA__ into Blosxom default templates
-      $class->merge_data_section_into( \%blosxom::template );
+      $self->merge_data_section_into( \%blosxom::template );
 
       return 1;
   }

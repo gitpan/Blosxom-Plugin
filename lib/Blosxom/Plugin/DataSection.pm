@@ -1,38 +1,29 @@
 package Blosxom::Plugin::DataSection;
 use strict;
 use warnings;
-use Carp qw/croak/;
 use Data::Section::Simple;
-
-my @exports = qw( data_section get_data_section merge_data_section_into );
 
 sub init {
     my ( $class, $c ) = @_;
-    $c->add_method( $_ => \&{"_$_"} ) for @exports;
+    $c->add_accessor( 'data_section' );
+    $c->add_method( $_ ) for qw( get_data_section merge_data_section_into );
     return;
 }
 
-sub _data_section {
-    my $class = shift;
-    $class->instance->{data_section} ||= do {
-        my $reader = Data::Section::Simple->new( $class );
-        $reader->get_data_section;
-    };
+sub _build_data_section {
+    my $self = shift;
+    my $reader = Data::Section::Simple->new( $self );
+    $reader->get_data_section;
 }
 
-sub _get_data_section { shift->data_section->{$_[0]} }
+sub get_data_section { shift->data_section->{$_[0]} }
 
-sub _merge_data_section_into {
-    my ( $class, $merge_into ) = @_;
-
-    croak 'Must provide a HASH reference' if ref $merge_into ne 'HASH';
-
-    while ( my ($basename, $template) = each %{ $class->data_section } ) {
+sub merge_data_section_into {
+    my ( $self, $merge_into ) = @_;
+    while ( my ($basename, $template) = each %{ $self->data_section } ) {
         my ( $chunk, $flavour ) = $basename =~ /(.*)\.([^.]*)/;
         $merge_into->{ $flavour }{ $chunk } = $template;
     }
-
-    return;
 }
 
 1;

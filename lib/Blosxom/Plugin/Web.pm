@@ -3,28 +3,21 @@ use strict;
 use warnings;
 use parent 'Blosxom::Plugin';
 
-__PACKAGE__->load_components( 'DataSection' );
-
-sub request {
-    my $class = shift;
-    $class->instance->{request} ||= do {
+__PACKAGE__->mk_accessors(
+    request => sub {
         require Blosxom::Plugin::Web::Request;
         Blosxom::Plugin::Web::Request->new;
-    };
-}
-
-sub response {
-    my $class = shift;
-    $class->instance->{response} ||= do {
+    },
+    response => sub {
         require Blosxom::Plugin::Web::Response;
         Blosxom::Plugin::Web::Response->new;
-    };
-}
+    },
+);
 
-BEGIN {
-    *req = \&request;
-    *res = \&response;
-}
+*req = \&request;
+*res = \&response;
+
+__PACKAGE__->load_components( 'DataSection' );
 
 1;
 
@@ -73,7 +66,7 @@ Deprecated.
 
 =item $class->get_data_section
 
-=item $class->merge_get_data_section_into
+=item $class->merge_data_section_into
 
 See L<Blosxom::Plugin::DataSection>.
 

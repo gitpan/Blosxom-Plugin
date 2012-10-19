@@ -1,5 +1,8 @@
 Revision history for Perl extension Blosxom::Plugin.
 
+0.01002  Oct 19th, 2012
+  - add mk_accessors()
+
 0.01001  Oct 17th, 2012
   - [DataSection] add merge_data_section_into()
 
