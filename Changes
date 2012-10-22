@@ -1,5 +1,9 @@
 Revision history for Perl extension Blosxom::Plugin.
 
+0.01003  Oct 22nd, 2012
+  - add add_attribute()
+  - [Web::Response] removed
+
 0.01002  Oct 19th, 2012
   - add mk_accessors()
 

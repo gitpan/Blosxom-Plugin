@@ -11,7 +11,7 @@ package MyComponent; {
     sub init {
         my ( $class, $c ) = @_;
 
-        if ( grep !$c->can($_), @requires ) {
+        if ( grep !$c->has_method($_), @requires ) {
             die "Can't apply $class to $c";
         }
 

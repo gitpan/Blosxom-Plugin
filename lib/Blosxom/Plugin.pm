@@ -4,24 +4,27 @@ use strict;
 use warnings;
 use Carp qw/croak/;
 
-our $VERSION = '0.01002';
+our $VERSION = '0.01003';
 
-my %instance_of;
+my %attribute_of;
 
 sub make_accessor {
-    my ( $class, $field, $default ) = @_;
-    my $build = ref $default eq 'CODE' ? $default : sub { $default };
+    my $class   = shift;
+    my $name    = shift;
+    my $default = shift || sub {};
+
     return sub {
-        my $self = $instance_of{ $class } ||= {};
-        return $self->{ $field } = $_[1] if @_ == 2;
-        return $self->{ $field } if exists $self->{ $field };
-        return $self->{ $field } = $class->$build;
+        my $class = shift;
+        my $attr = $attribute_of{ $class } ||= {};
+        return $attr->{$name} = shift            if @_;
+        return $attr->{$name} = $class->$default if !exists $attr->{$name};
+        return $attr->{$name};
     };
 }
 
 sub end {
     my $class = shift;
-    delete $instance_of{ $class };
+    delete $attribute_of{ $class };
     return;
 }
 
@@ -30,8 +33,8 @@ sub mk_accessors {
     no strict 'refs';
     while ( @_ ) {
         my $field = shift;
-        my $default = ref $_[0] eq 'CODE' ? shift : undef;
-        *{ "$class\::$field" } = $class->make_accessor( $field, $default );
+        my $builder = ref $_[0] eq 'CODE' ? shift : undef;
+        *{ "$class\::$field" } = $class->make_accessor( $field, $builder );
     }
 }
 
@@ -49,7 +52,7 @@ sub load_components {
         return;
     };
 
-    local *add_accessor = sub {
+    local *add_attribute = sub {
         my ( $class, $field, $builder ) = @_;
         $builder ||= $component->can( "_build_$field" );
         my $accessor = $class->make_accessor( $field, $builder );
@@ -114,24 +117,24 @@ Blosxom::Plugin - Base class for Blosxom plugins
   use warnings;
   use parent 'Blosxom::Plugin';
 
-  # generates foo()
+  # generates a class attribute called foo()
   __PACKAGE__->mk_accessors( 'foo' );
 
-  # does 'Blosxom::Plugin::DataSection'
+  # does Blosxom::Plugin::DataSection
   __PACKAGE__->load_components( 'DataSection' );
 
   sub start {
-      my $self = shift; # => "my_plugin"
+      my $class = shift;
 
-      $self->foo( 'bar' );
-      my $value = $self->foo; # => "bar"
+      $class->foo( 'bar' );
+      my $value = $class->foo; # => "bar"
 
-      my $template = $self->get_data_section( 'my_plugin.html' );
+      my $template = $class->get_data_section( 'my_plugin.html' );
       # <!DOCTYPE html>
       # ...
 
       # merge __DATA__ into Blosxom default templates
-      $self->merge_data_section_into( \%blosxom::template );
+      $class->merge_data_section_into( \%blosxom::template );
 
       return 1;
   }
@@ -170,18 +173,49 @@ routines from Blosxom plugins.
 
 =over 4
 
-=item $class->load_components( @comps )
+=item $class->mk_accessors( @fields )
 
-=item $class->load_components( $comp => \%config, ... )
+=item $class->mk_accessors( $field => \&default, ... )
+
+This creates class attributes for each named field given
+in C<@fields>. Attributes can have default values which is not generated
+until the field is read. C<&default> is called as a method on the class
+with no additional parameters.
+
+  package my_plugin;
+  use parent 'Blosxom::Plugin';
+  use Path::Class::File;
+
+  __PACKAGE__->mk_accessors(
+      'path',
+      'file' => sub {
+          my $class = shift;
+          Path::Class::File->new( $class->path );
+      },
+  );
+
+  sub start {
+      my $class = shift;
+
+      $class->path( '/path/to/entry.txt' );
+      my $path = $class->path; # => "/path/to/entry.txt"
+
+      # file() is a Path::Class::File object
+      my $basename = $class->file->basename; # => "entry.txt"
+
+      return 1;
+  }
+
+=item $class->load_components( @components )
+
+=item $class->load_components( $component => \%configuration, ... )
 
 Loads the given components into the current module.
-Components can be parameterized by the consumers.
+Components can be configured by the loaders.
 If a module begins with a C<+> character,
 it is taken to be a fully qualified class name,
 otherwise C<Blosxom::Plugin> is prepended to it.
 
-  package my_plugin;
-  use parent 'Blosxom::Plugin';
   __PACKAGE__->load_components( '+MyComponent' => \%config );
 
 This method calls C<init()> method of each component.
@@ -189,17 +223,27 @@ C<init()> is called as follows:
 
   MyComponent->init( 'my_plugin', \%config )
 
-=item $class->add_method( $method => $coderef )
+=item $class->add_method( $method_name )
+
+=item $class->add_method( $method_name => $coderef )
 
 This method takes a method name and a subroutine reference,
 and adds the method to the class.
 Available while loading components.
+If the caller's class defines a method which has the same name
+as C<$method_name>, C<$coderef> can be ommited.
 
   package MyComponent;
 
   sub init {
       my ( $class, $context, $config ) = @_;
-      $context->add_method( foo => sub { ... } );
+      $context->add_method( 'foo' );
+      $context->add_method( 'bar' => sub { ... } );
+  }
+
+  sub foo {
+      my $class = shift;
+      ...
   }
 
 If a method is already defined on the class, that method will not be composed
@@ -208,7 +252,23 @@ If multiple components are applied in a single call, then if any of their
 provided methods clash, an exception is raised unless the class provides
 the method.
 
-=item $bool = $class->has_method( $method )
+=item $class->add_attribute( $field )
+
+=item $class->add_attribute( $field => \&builder )
+
+This method takes an attribute name, and adds the attribute to the class.
+Available while loading components.
+Attributes can have default values which is not generated until the field 
+is read. C<\&builder> is called as a method on the class with no additional
+parameters.
+
+  sub init {
+      my ( $class, $context ) = @_;
+      $context->add_attribute( 'foo' );
+      $context->add_attribute( 'bar' => sub { ... } );
+  }
+
+=item $bool = $class->has_method( $method_name )
 
 Returns a Boolean value telling whether or not the class defines the named
 method. It does not include methods inherited from parent classes.
@@ -220,6 +280,19 @@ method. It does not include methods inherited from parent classes.
       unless ( $context->has_method($requires) ) {
           die "Cannot apply '$class' to '$context'";
       }
+  }
+
+=item $class->end
+
+Undefines class attributes generated by C<mk_accessors()>
+or C<add_attribute()>.
+Since C<end()> is one of recognized hooks,
+it's guaranteed that Blosxom always invokes this method.
+
+  sub end {
+      my $class = shift;
+      # do something
+      $class->SUPER::end;
   }
 
 =back

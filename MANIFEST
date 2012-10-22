@@ -13,21 +13,18 @@ lib/Blosxom/Plugin/DataSection.pm
 lib/Blosxom/Plugin/Web.pm
 lib/Blosxom/Plugin/Web/Request.pm
 lib/Blosxom/Plugin/Web/Request/Upload.pm
-lib/Blosxom/Plugin/Web/Response.pm
 Makefile.PL
 MANIFEST			This list of files
 META.yml
 README
 t/add_accessor.t
 t/add_method.t
-t/cgi_error.t
 t/compile.t
 t/conflict.t
 t/data_section.t
 t/load_components.t
 t/plugins/data_section
 t/request.t
-t/response.t
 t/role_requires.t
 t/upload.t
 t/upload_post_text.txt

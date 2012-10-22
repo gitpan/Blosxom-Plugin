@@ -8,14 +8,9 @@ __PACKAGE__->mk_accessors(
         require Blosxom::Plugin::Web::Request;
         Blosxom::Plugin::Web::Request->new;
     },
-    response => sub {
-        require Blosxom::Plugin::Web::Response;
-        Blosxom::Plugin::Web::Response->new;
-    },
 );
 
 *req = \&request;
-*res = \&response;
 
 __PACKAGE__->load_components( 'DataSection' );
 

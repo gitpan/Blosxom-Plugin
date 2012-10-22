@@ -4,23 +4,22 @@ use warnings;
 use Data::Section::Simple;
 
 sub init {
-    my ( $class, $c ) = @_;
-    $c->add_accessor( 'data_section' );
-    $c->add_method( $_ ) for qw( get_data_section merge_data_section_into );
+    my ( $class, $meta ) = @_;
+    $meta->add_attribute( 'data_section' );
+    $meta->add_method( $_ ) for qw( get_data_section merge_data_section_into );
     return;
 }
 
 sub _build_data_section {
-    my $self = shift;
-    my $reader = Data::Section::Simple->new( $self );
-    $reader->get_data_section;
+    my $class = shift;
+    Data::Section::Simple->new($class)->get_data_section;
 }
 
 sub get_data_section { shift->data_section->{$_[0]} }
 
 sub merge_data_section_into {
-    my ( $self, $merge_into ) = @_;
-    while ( my ($basename, $template) = each %{ $self->data_section } ) {
+    my ( $class, $merge_into ) = @_;
+    while ( my ($basename, $template) = each %{ $class->data_section } ) {
         my ( $chunk, $flavour ) = $basename =~ /(.*)\.([^.]*)/;
         $merge_into->{ $flavour }{ $chunk } = $template;
     }

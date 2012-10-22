@@ -26,7 +26,6 @@ no_index:
   package:
     - Fh
 requires:
-  Blosxom::Header: 0.06001
   CGI: 0
   Data::Section::Simple: 0
   File::Spec::Unix: 0
@@ -36,4 +35,4 @@ requires:
 resources:
   license: http://dev.perl.org/licenses/
   repository: https://github.com/anazawa/p5-Blosxom-Plugin
-version: 0.01002
+version: 0.01003

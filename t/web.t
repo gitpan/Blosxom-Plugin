@@ -1,27 +1,15 @@
 use strict;
 use parent 'Blosxom::Plugin::Web';
-use Test::More tests => 20;
-
-package blosxom;
-our $header = {};
-
-package main;
+use Test::More tests => 18;
 
 my $class = __PACKAGE__;
 
+isa_ok $class, 'Blosxom::Plugin';
+
 can_ok $class, qw(
-    load_components
-    response res request req
+    request req
     get_data_section merge_data_section_into
 );
-
-my $res = $class->res;
-isa_ok $res, 'Blosxom::Plugin::Web::Response';
-
-my $response = $class->response;
-isa_ok $response, 'Blosxom::Plugin::Web::Response';
-
-is $res, $response;
 
 my $req = $class->req;
 isa_ok $req, 'Blosxom::Plugin::Web::Request';
