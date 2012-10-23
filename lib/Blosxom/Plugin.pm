@@ -4,7 +4,7 @@ use strict;
 use warnings;
 use Carp qw/croak/;
 
-our $VERSION = '0.01003';
+our $VERSION = '0.01004';
 
 my %attribute_of;
 
@@ -16,9 +16,9 @@ sub make_accessor {
     return sub {
         my $class = shift;
         my $attr = $attribute_of{ $class } ||= {};
-        return $attr->{$name} = shift            if @_;
-        return $attr->{$name} = $class->$default if !exists $attr->{$name};
-        return $attr->{$name};
+        return $attr->{ $name } = shift if @_;
+        return $attr->{ $name } if exists $attr->{ $name };
+        $attr->{ $name } = $class->$default;
     };
 }
 
@@ -28,13 +28,21 @@ sub end {
     return;
 }
 
+sub dump {
+    my $class = shift;
+    require Data::Dumper;
+    local $Data::Dumper::Maxdepth = shift || 1;
+    Data::Dumper::Dumper( $attribute_of{$class} );
+}
+
 sub mk_accessors {
     my $class = shift;
     no strict 'refs';
     while ( @_ ) {
         my $field = shift;
-        my $builder = ref $_[0] eq 'CODE' ? shift : undef;
-        *{ "$class\::$field" } = $class->make_accessor( $field, $builder );
+        my $default = ref $_[0] eq 'CODE' ? shift : undef;
+        my $accessor = $class->make_accessor( $field, $default );
+        *{ "$class\::$field" } = $accessor;
     }
 }
 
@@ -158,16 +166,16 @@ Blosxom::Plugin - Base class for Blosxom plugins
 
 =head1 DESCRIPTION
 
-Base class for Blosxom plugins.
-Inspired by Blosxom 3 which was abandoned to be released.
+This module enables Blosxom plugins to create class attributes
+and load additional components.
 
-=head2 BACKGROUND
+Blosxom never creates instances of plugins,
+and so they can't have instance attributes.
+This module creates class attributes instead,
+and always undefines them after all output has been processed.
 
-Blosxom globalizes a lot of variables.
-This module assigns them to appropriate namespaces
-like 'Request', 'Response' or 'Config'.
-In addition, it's intended that Blosxom::Plugin::* namespace will abstract
-routines from Blosxom plugins.
+Components will abstract routines from Blosxom plugins.
+It's intended that they will be shared on CPAN.
 
 =head2 METHODS
 
@@ -231,7 +239,7 @@ This method takes a method name and a subroutine reference,
 and adds the method to the class.
 Available while loading components.
 If the caller's class defines a method which has the same name
-as C<$method_name>, C<$coderef> can be ommited.
+as C<$method_name>, C<$coderef> can be omitted.
 
   package MyComponent;
 
@@ -254,12 +262,12 @@ the method.
 
 =item $class->add_attribute( $field )
 
-=item $class->add_attribute( $field => \&builder )
+=item $class->add_attribute( $field => \&default )
 
 This method takes an attribute name, and adds the attribute to the class.
 Available while loading components.
-Attributes can have default values which is not generated until the field 
-is read. C<\&builder> is called as a method on the class with no additional
+Attributes can have default values which is not generated until the attribute 
+is read. C<&default> is called as a method on the class with no additional
 parameters.
 
   sub init {
@@ -295,6 +303,12 @@ it's guaranteed that Blosxom always invokes this method.
       $class->SUPER::end;
   }
 
+=item $class->dump
+
+This method uses L<Data::Dumper> to dump the class attributes.
+You can pass an optional maximum depth, which will set
+C<$Data::Dumper::Maxdepth>. The default maximum depth is 1.
+
 =back
 
 =head1 DEPENDENCIES
@@ -316,7 +330,8 @@ succeeded to the maintenance.
 
 =head1 BUGS AND LIMITATIONS
 
-This module is beta state. API may change without notice.
+There are no known bug in this module. Please report problems to
+ANAZAWA (anazawa@cpan.org). Patches are welcome.
 
 =head1 AUTHOR
 

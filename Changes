@@ -1,5 +1,9 @@
 Revision history for Perl extension Blosxom::Plugin.
 
+0.01004  Oct 23rd, 2012
+  - initial release
+  - [DataSection] add data_section_names()
+
 0.01003  Oct 22nd, 2012
   - add add_attribute()
   - [Web::Response] removed

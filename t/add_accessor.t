@@ -21,3 +21,4 @@ my $class = 'main';
 $class->foo( 'bar' );
 
 ok $class->foo, 'bar';
+

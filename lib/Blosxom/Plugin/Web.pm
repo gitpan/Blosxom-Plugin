@@ -47,31 +47,13 @@ and implements the following new ones.
 
 =over 4
 
-=item $class->response, $class->res
-
-Returns a L<Blosxom::Plugin::Web::Response> object.
-
 =item $class->request, $class->req
 
 Returns a L<Blosxom::Plugin::Web::Request> object.
 
-=item $class->util
-
-Deprecated.
-
-=item $class->get_data_section
-
-=item $class->merge_data_section_into
+=item $class->get_data_section, $class->merge_data_section_into
 
 See L<Blosxom::Plugin::DataSection>.
-
-=item $rendered = $class->render
-
-Deprecated.
-
-=item $template = $class->get_template 
-
-Deprecated.
 
 =back
 

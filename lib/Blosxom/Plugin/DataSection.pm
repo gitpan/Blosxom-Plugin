@@ -3,10 +3,16 @@ use strict;
 use warnings;
 use Data::Section::Simple;
 
+my @exports = qw(
+    get_data_section
+    data_section_names
+    merge_data_section_into
+);
+
 sub init {
     my ( $class, $meta ) = @_;
     $meta->add_attribute( 'data_section' );
-    $meta->add_method( $_ ) for qw( get_data_section merge_data_section_into );
+    $meta->add_method( $_ ) for @exports;
     return;
 }
 
@@ -15,7 +21,8 @@ sub _build_data_section {
     Data::Section::Simple->new($class)->get_data_section;
 }
 
-sub get_data_section { shift->data_section->{$_[0]} }
+sub get_data_section   { shift->data_section->{$_[0]}  }
+sub data_section_names { keys %{ shift->data_section } }
 
 sub merge_data_section_into {
     my ( $class, $merge_into ) = @_;
@@ -45,17 +52,14 @@ Blosxom::Plugin::DataSection - Read data from __DATA__
   sub start {
       my $class = shift;
 
+      my $template = $class->get_data_section( 'my_plugin.html' );
+      # <!DOCTYPE html>
+      # ...
+
       # merge __DATA__ into Blosxom default templates
       $class->merge_data_section_into( \%blosxom::template );
 
       return 1;
-  }
-
-  sub head {
-      my $class = shift;
-      my $template = $class->get_data_section( 'my_plugin.html' );
-      $template = $blosxom::interpolate->( $template );
-      return;
   }
 
   1;
@@ -79,6 +83,37 @@ Blosxom::Plugin::DataSection - Read data from __DATA__
 
 This module extracts data from C<__DATA__> section of the plugin,
 and also merges them into Blosxom default templates.
+
+=head2 METHODS
+
+=over 4
+
+=item $template = $class->get_data_section( $name )
+
+This method returns a string containing the data from the named section.
+
+=item @names = $class->data_section_names
+
+This returns a list of all the names that will be recognized
+by the C<get_data_section()> method.
+
+=item $class->merge_data_section_into( \%blosxom::template )
+
+Given a reference to a hash which holds Blosxom default templates,
+merges __DATA__ into the hash. The following data structure is expected:
+
+  {
+      html => {
+          head  => '<html><head>...',
+          story => '<p><a name="$fn">...',
+      },
+      rss => {
+          head  => '<?xml version="1.0">...',
+          story => '<item>...',
+      },
+  }
+
+=back
 
 =head1 SEE ALSO
 

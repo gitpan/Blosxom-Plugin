@@ -13,9 +13,6 @@ sub new {
 sub path_info { carp 'Not implemented yet' }
 sub base      { carp 'Not implemented yet' }
 
-sub date    { carp 'Obsolete' }
-sub flavour { carp 'Obsolete' }
-
 sub header    { shift->{query}->http( @_ )   }
 sub is_secure { scalar shift->{query}->https }
 
@@ -115,14 +112,6 @@ Not implemented yet.
 =item $request->path_info
 
 Not implemented yet.
-
-=item $request->date
-
-Deprecated.
-
-=item $request->flavour
-
-Deprecated.
 
 =item $request->cookie
 
