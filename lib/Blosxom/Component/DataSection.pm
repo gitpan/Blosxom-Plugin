@@ -1,19 +1,13 @@
-package Blosxom::Plugin::DataSection;
+package Blosxom::Component::DataSection;
 use strict;
 use warnings;
+use parent 'Blosxom::Component';
 use Data::Section::Simple;
 
-my @exports = qw(
-    get_data_section
-    data_section_names
-    merge_data_section_into
-);
-
 sub init {
-    my ( $class, $meta ) = @_;
-    $meta->add_attribute( 'data_section' );
-    $meta->add_method( $_ ) for @exports;
-    return;
+    my ( $class, $caller ) = @_;
+    $caller->add_attribute( 'data_section' );
+    $class->SUPER::init( $caller );
 }
 
 sub _build_data_section {
@@ -38,7 +32,7 @@ __END__
 
 =head1 NAME
 
-Blosxom::Plugin::DataSection - Read data from __DATA__
+Blosxom::Component::DataSection - Read data from __DATA__
 
 =head1 SYNOPSIS
 

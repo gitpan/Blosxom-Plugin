@@ -1,5 +1,12 @@
 Revision history for Perl extension Blosxom::Plugin.
 
+0.02000  Oct 27th, 2012
+  - Rename Blosxom::Plugin::DataSection to Blosxom::Component::DataSection
+    (sorry for the incovenience)
+    Components doesn't need to call add_method() explicitly
+    if they inherit from Blosxom::Component
+  - Add component_base_class()
+
 0.01004  Oct 23rd, 2012
   - initial release
   - [DataSection] add data_section_names()

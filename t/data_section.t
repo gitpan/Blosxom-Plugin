@@ -1,7 +1,7 @@
 use strict;
 use warnings;
 use parent 'Blosxom::Plugin';
-use Test::More tests => 2;
+use Test::More tests => 3;
 
 {
     package blosxom;
@@ -21,6 +21,8 @@ is_deeply \%blosxom::template, {
         my_plugin => "hello, world\n",
     },
 };
+
+ok !$plugin->can( 'init' );
 
 __DATA__
 @@ my_plugin.html

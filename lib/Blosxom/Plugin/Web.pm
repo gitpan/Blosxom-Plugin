@@ -36,7 +36,7 @@ The core components currently are:
 
 =over 4
 
-=item L<Blosxom::Plugin::DataSection>
+=item L<Blosxom::Component::DataSection>
 
 =back
 
@@ -53,7 +53,7 @@ Returns a L<Blosxom::Plugin::Web::Request> object.
 
 =item $class->get_data_section, $class->merge_data_section_into
 
-See L<Blosxom::Plugin::DataSection>.
+See L<Blosxom::Component::DataSection>.
 
 =back
 

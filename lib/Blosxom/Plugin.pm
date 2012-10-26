@@ -4,7 +4,7 @@ use strict;
 use warnings;
 use Carp qw/croak/;
 
-our $VERSION = '0.01004';
+our $VERSION = '0.02000';
 
 my %attribute_of;
 
@@ -41,14 +41,15 @@ sub mk_accessors {
     while ( @_ ) {
         my $field = shift;
         my $default = ref $_[0] eq 'CODE' ? shift : undef;
-        my $accessor = $class->make_accessor( $field, $default );
-        *{ "$class\::$field" } = $accessor;
+        *{ "$class\::$field" } = $class->make_accessor( $field, $default );
     }
 }
 
+sub component_base_class { 'Blosxom::Component' }
+
 sub load_components {
     my $class  = shift;
-    my $prefix = __PACKAGE__;
+    my $prefix = $class->component_base_class;
 
     my ( $component, %has_conflict, %code_of );
 
@@ -61,10 +62,10 @@ sub load_components {
     };
 
     local *add_attribute = sub {
-        my ( $class, $field, $builder ) = @_;
-        $builder ||= $component->can( "_build_$field" );
-        my $accessor = $class->make_accessor( $field, $builder );
-        $class->add_method( $field => $accessor );
+        my ( $class, $attribute, $builder ) = @_;
+        $builder ||= $component->can( "_build_$attribute" );
+        my $accessor = $class->make_accessor( $attribute, $builder );
+        $class->add_method( $attribute => $accessor );
     };
 
     while ( @_ ) {
@@ -110,6 +111,8 @@ sub has_method {
     defined &{ "$class\::$method" };
 }
 
+# TODO: How can I implement has_attribute()?
+
 1;
 
 __END__
@@ -128,7 +131,7 @@ Blosxom::Plugin - Base class for Blosxom plugins
   # generates a class attribute called foo()
   __PACKAGE__->mk_accessors( 'foo' );
 
-  # does Blosxom::Plugin::DataSection
+  # does Blosxom::Component::DataSection
   __PACKAGE__->load_components( 'DataSection' );
 
   sub start {
@@ -222,7 +225,7 @@ Loads the given components into the current module.
 Components can be configured by the loaders.
 If a module begins with a C<+> character,
 it is taken to be a fully qualified class name,
-otherwise C<Blosxom::Plugin> is prepended to it.
+otherwise C<Blosxom::Component> is prepended to it.
 
   __PACKAGE__->load_components( '+MyComponent' => \%config );
 
@@ -230,6 +233,10 @@ This method calls C<init()> method of each component.
 C<init()> is called as follows:
 
   MyComponent->init( 'my_plugin', \%config )
+
+If multiple components are loaded in a single call, then if any of their
+provided methods clash, an exception is raised unless the class provides
+the method.
 
 =item $class->add_method( $method_name )
 
@@ -254,15 +261,11 @@ as C<$method_name>, C<$coderef> can be omitted.
       ...
   }
 
-If a method is already defined on the class, that method will not be composed
-in from the component.
-If multiple components are applied in a single call, then if any of their
-provided methods clash, an exception is raised unless the class provides
-the method.
+If a method is already defined on the class, that method will not be added.
 
-=item $class->add_attribute( $field )
+=item $class->add_attribute( $attribute_name )
 
-=item $class->add_attribute( $field => \&default )
+=item $class->add_attribute( $attribute_name => \&default )
 
 This method takes an attribute name, and adds the attribute to the class.
 Available while loading components.
@@ -303,7 +306,7 @@ it's guaranteed that Blosxom always invokes this method.
       $class->SUPER::end;
   }
 
-=item $class->dump
+=item $class->dump( $max_depth )
 
 This method uses L<Data::Dumper> to dump the class attributes.
 You can pass an optional maximum depth, which will set

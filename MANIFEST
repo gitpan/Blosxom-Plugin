@@ -8,8 +8,9 @@ inc/Module/Install/Makefile.pm
 inc/Module/Install/Metadata.pm
 inc/Module/Install/Win32.pm
 inc/Module/Install/WriteAll.pm
+lib/Blosxom/Component.pm
+lib/Blosxom/Component/DataSection.pm
 lib/Blosxom/Plugin.pm
-lib/Blosxom/Plugin/DataSection.pm
 lib/Blosxom/Plugin/Web.pm
 lib/Blosxom/Plugin/Web/Request.pm
 lib/Blosxom/Plugin/Web/Request/Upload.pm
