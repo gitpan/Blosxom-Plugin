@@ -1,5 +1,9 @@
 Revision history for Perl extension Blosxom::Plugin.
 
+0.02001  Oct 31st, 2012
+  - Must pass a code reference to add_method
+  - [Blosxom::Component] add mk_accessors()
+
 0.02000  Oct 27th, 2012
   - Rename Blosxom::Plugin::DataSection to Blosxom::Component::DataSection
     (sorry for the incovenience)

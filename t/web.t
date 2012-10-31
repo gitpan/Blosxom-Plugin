@@ -32,3 +32,5 @@ SKIP: {
         ok !$class->can( $method ), "'$method' is reserved";
     }
 }
+
+$class->end;

@@ -2,9 +2,8 @@ package Blosxom::Plugin;
 use 5.008_009;
 use strict;
 use warnings;
-use Carp qw/croak/;
 
-our $VERSION = '0.02000';
+our $VERSION = '0.02001';
 
 my %attribute_of;
 
@@ -15,16 +14,16 @@ sub make_accessor {
 
     return sub {
         my $class = shift;
-        my $attr = $attribute_of{ $class } ||= {};
-        return $attr->{ $name } = shift if @_;
-        return $attr->{ $name } if exists $attr->{ $name };
-        $attr->{ $name } = $class->$default;
+        my $attribute = $attribute_of{ $class } ||= {};
+        return $attribute->{ $name } = shift if @_;
+        return $attribute->{ $name } if exists $attribute->{ $name };
+        $attribute->{ $name } = $class->$default;
     };
 }
 
 sub end {
     my $class = shift;
-    delete $attribute_of{ $class };
+    %{ $attribute_of{$class} } = () if exists $attribute_of{ $class };
     return;
 }
 
@@ -57,15 +56,8 @@ sub load_components {
         my ( $class, $method, $code ) = @_;
         return if defined &{ "$class\::$method" };
         push @{ $has_conflict{$method} ||= [] }, $component;
-        $code_of{ $method } = $code || $component->can( $method );
+        $code_of{ $method } = $code;
         return;
-    };
-
-    local *add_attribute = sub {
-        my ( $class, $attribute, $builder ) = @_;
-        $builder ||= $component->can( "_build_$attribute" );
-        my $accessor = $class->make_accessor( $attribute, $builder );
-        $class->add_method( $attribute => $accessor );
     };
 
     while ( @_ ) {
@@ -96,22 +88,27 @@ sub load_components {
     }
 
     if ( %has_conflict ) {
-        croak join "\n", map {
+        require Carp;
+        Carp::croak(join "\n", map {
             "Due to a method name conflict between components " .
             "'" . join( ' and ', sort @{ $has_conflict{$_} } ) . "', " .
             "the method '$_' must be implemented by '$class'";
-        } keys %has_conflict;
+        } keys %has_conflict);
     }
 
     return;
+}
+
+sub add_attribute {
+    my ( $class, $field, $default ) = @_;
+    my $accessor = $class->make_accessor( $field => $default );
+    $class->add_method( $field => $accessor );
 }
 
 sub has_method {
     my ( $class, $method ) = @_;
     defined &{ "$class\::$method" };
 }
-
-# TODO: How can I implement has_attribute()?
 
 1;
 
@@ -238,45 +235,34 @@ If multiple components are loaded in a single call, then if any of their
 provided methods clash, an exception is raised unless the class provides
 the method.
 
-=item $class->add_method( $method_name )
-
 =item $class->add_method( $method_name => $coderef )
 
 This method takes a method name and a subroutine reference,
 and adds the method to the class.
 Available while loading components.
-If the caller's class defines a method which has the same name
-as C<$method_name>, C<$coderef> can be omitted.
+If a method is already defined on the class, that method will not be added.
 
   package MyComponent;
 
   sub init {
-      my ( $class, $context, $config ) = @_;
-      $context->add_method( 'foo' );
-      $context->add_method( 'bar' => sub { ... } );
+      my ( $class, $caller, $config ) = @_;
+      $caller->add_method( 'foo' => sub { ... } );
   }
-
-  sub foo {
-      my $class = shift;
-      ...
-  }
-
-If a method is already defined on the class, that method will not be added.
 
 =item $class->add_attribute( $attribute_name )
 
-=item $class->add_attribute( $attribute_name => \&default )
+=item $class->add_attribute( $attribute_name, \&default )
 
 This method takes an attribute name, and adds the attribute to the class.
 Available while loading components.
-Attributes can have default values which is not generated until the attribute 
-is read. C<&default> is called as a method on the class with no additional
-parameters.
+Attributes can have default values which is not generated
+until the attribute is read.
+C<&default> is called as a method on the class with no additional arguments.
 
   sub init {
-      my ( $class, $context ) = @_;
-      $context->add_attribute( 'foo' );
-      $context->add_attribute( 'bar' => sub { ... } );
+      my ( $class, $caller ) = @_;
+      $caller->add_attribute( 'foo' );
+      $caller->add_attribute( 'bar' => sub { ... } );
   }
 
 =item $bool = $class->has_method( $method_name )

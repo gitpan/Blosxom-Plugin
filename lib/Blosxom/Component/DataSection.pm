@@ -4,19 +4,15 @@ use warnings;
 use parent 'Blosxom::Component';
 use Data::Section::Simple;
 
-sub init {
-    my ( $class, $caller ) = @_;
-    $caller->add_attribute( 'data_section' );
-    $class->SUPER::init( $caller );
-}
+__PACKAGE__->mk_accessors(
+    data_section => sub {
+        my $class = shift;
+        Data::Section::Simple->new($class)->get_data_section;
+    },
+);
 
-sub _build_data_section {
-    my $class = shift;
-    Data::Section::Simple->new($class)->get_data_section;
-}
-
-sub get_data_section   { shift->data_section->{$_[0]}  }
-sub data_section_names { keys %{ shift->data_section } }
+sub get_data_section   { $_[0]->data_section->{$_[1]}  }
+sub data_section_names { keys %{ $_[0]->data_section } }
 
 sub merge_data_section_into {
     my ( $class, $merge_into ) = @_;

@@ -22,7 +22,7 @@ is_deeply \%blosxom::template, {
     },
 };
 
-ok !$plugin->can( 'init' );
+ok !$plugin->has_method( 'init' );
 
 __DATA__
 @@ my_plugin.html

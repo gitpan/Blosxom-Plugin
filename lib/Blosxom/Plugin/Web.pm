@@ -3,16 +3,24 @@ use strict;
 use warnings;
 use parent 'Blosxom::Plugin';
 
-__PACKAGE__->mk_accessors(
-    request => sub {
+__PACKAGE__->load_components( 'DataSection' );
+
+my $request;
+
+sub request {
+    $request ||= do {
         require Blosxom::Plugin::Web::Request;
         Blosxom::Plugin::Web::Request->new;
-    },
-);
+    };
+}
 
-*req = \&request;
+BEGIN { *req = \&request }
 
-__PACKAGE__->load_components( 'DataSection' );
+sub end {
+    my $class = shift;
+    undef $request if $request;
+    $class->SUPER::end;
+}
 
 1;
 
