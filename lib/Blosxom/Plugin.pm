@@ -2,8 +2,9 @@ package Blosxom::Plugin;
 use 5.008_009;
 use strict;
 use warnings;
+use Carp qw/croak/;
 
-our $VERSION = '0.02001';
+our $VERSION = '0.02002';
 
 my %attribute_of;
 
@@ -88,21 +89,20 @@ sub load_components {
     }
 
     if ( %has_conflict ) {
-        require Carp;
-        Carp::croak(join "\n", map {
+        croak join "\n", map {
             "Due to a method name conflict between components " .
             "'" . join( ' and ', sort @{ $has_conflict{$_} } ) . "', " .
             "the method '$_' must be implemented by '$class'";
-        } keys %has_conflict);
+        } keys %has_conflict;
     }
 
     return;
 }
 
 sub add_attribute {
-    my ( $class, $field, $default ) = @_;
-    my $accessor = $class->make_accessor( $field => $default );
-    $class->add_method( $field => $accessor );
+    my ( $class, $name, $default ) = @_;
+    my $accessor = $class->make_accessor( $name, $default );
+    $class->add_method( $name => $accessor );
 }
 
 sub has_method {

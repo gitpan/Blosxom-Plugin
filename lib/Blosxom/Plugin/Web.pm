@@ -28,7 +28,7 @@ __END__
 
 =head1 NAME
 
-Blosxom::Plugin::Web - Core set of Blosxom::Plugin modules
+Blosxom::Plugin::Web - Core set of Blosxom::Component modules
 
 =head1 SYNOPSIS
 

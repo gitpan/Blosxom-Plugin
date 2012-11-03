@@ -1,8 +1,14 @@
 package Blosxom::Component;
 use strict;
 use warnings;
+use Carp qw/croak/;
 
-my %attribute_of;
+my ( %attribute_of, %requires );
+
+sub requires {
+    my ( $class, @methods ) = @_;
+    push @{ $requires{$class} ||= [] }, @methods;
+}
 
 sub mk_accessors {
     my $class = shift;
@@ -14,18 +20,27 @@ sub mk_accessors {
 }
 
 sub init {
-    my ( $class, $caller ) = @_;
+    my $class  = shift;
+    my $caller = shift;
+    my $stash  = do { no strict 'refs'; \%{"$class\::"} };
 
-    my $namespace = do { no strict 'refs'; \%{"$class\::"} };
-    while ( my ($method, $glob) = each %{$namespace} ) {
-        if ( defined *{$glob}{CODE} and $method ne 'init' ) {
-            $caller->add_method( $method => *{$glob}{CODE} );
+    if ( my $requires = $requires{$class} ) {
+        my @methods = grep { !$caller->can($_) } @{$requires};
+        croak "Can't apply '$class' to '$caller' - missing " .
+              join( ', ', @methods ) if @methods;
+    }
+
+    if ( my $attribute = $attribute_of{$class} ) {
+        while ( my ($field, $default) = each %{$attribute} ) {
+            my $accessor = $caller->make_accessor( $field, $default );
+            $caller->add_method( $field => $accessor );
         }
     }
 
-    if ( my $attributes = $attribute_of{$class} ) {
-        while ( my ($field, $default) = each %{$attributes} ) {
-            $caller->add_attribute( $field => $default );
+    # NOTE: use keys() instead
+    while ( my ($name, $glob) = each %{$stash} ) {
+        if ( defined *{$glob}{CODE} and $name ne 'init' ) {
+            $caller->add_method( $name => *{$glob}{CODE} );
         }
     }
 
@@ -52,6 +67,12 @@ Base class for Blosxom components.
 =head2 METHODS
 
 =over 4
+
+=item $class->requires
+
+Declares a list of methods that must be defined to load this component.
+
+  __PACKAGE__->requires(qw/req1 req2/);
 
 =item $class->mk_accessors
 

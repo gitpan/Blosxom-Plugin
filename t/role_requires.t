@@ -1,44 +1,37 @@
 use strict;
 use warnings;
-use Test::More tests => 2;
+use Test::Exception;
+use Test::More tests => 3;
 
 $INC{'MyComponent.pm'}++;
 
-package MyComponent; {
+package MyComponent;
+use parent 'Blosxom::Component';
 
-    my @requires = qw( req1 req2 );
+__PACKAGE__->requires(qw/req1 req2/);
 
-    sub init {
-        my ( $class, $c ) = @_;
+sub bar { 'MyComponent bar' }
+sub baz { 'MyComponent baz' }
 
-        if ( grep !$c->has_method($_), @requires ) {
-            die "Can't apply $class to $c";
-        }
+package my_plugin;
+use parent 'Blosxom::Plugin';
 
-        $c->add_method( bar => \&_bar );
-        $c->add_method( baz => \&_baz );
+__PACKAGE__->load_components( '+MyComponent' );
 
-        return;
-    }
+sub req1 {}
+sub req2 {}
+sub foo { 'my_plugin foo' }
+sub baz { 'my_plugin baz' }
 
-    sub _bar { 'MyComponent bar' }
-    sub _baz { 'MyComponent baz' }
-}
-
-package my_plugin; {
-    use parent 'Blosxom::Plugin';
-
-    __PACKAGE__->load_components( '+MyComponent' );
-
-    sub req1 {}
-    sub req2 {}
-    sub foo { 'my_plugin foo' }
-    sub baz { 'my_plugin baz' }
-}
+package another_plugin;
+use parent 'Blosxom::Plugin';
 
 package main;
 
 my $plugin = 'my_plugin';
+
 is $plugin->bar, 'MyComponent bar';
 is $plugin->baz, 'my_plugin baz';
 
+throws_ok { another_plugin->load_components('+MyComponent') }
+    qr/^Can't apply 'MyComponent' to 'another_plugin'/;
