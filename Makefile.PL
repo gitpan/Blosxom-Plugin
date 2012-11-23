@@ -5,7 +5,7 @@ all_from 'lib/Blosxom/Plugin.pm';
 repository 'https://github.com/anazawa/p5-Blosxom-Plugin';
 
 requires 'parent';
-requires 'CGI';
+requires 'CGI' => '3.51';
 requires 'Data::Section::Simple';
 requires 'File::Spec::Unix';
 requires 'IO::File';

@@ -3,28 +3,42 @@ use 5.008_009;
 use strict;
 use warnings;
 use Carp qw/croak/;
+use Exporter 'import';
 
-our $VERSION = '0.02002';
+our $VERSION = '0.02003';
 
-my %attribute_of;
+our @EXPORT = qw( init mk_accessors requires );
 
-sub make_accessor {
-    my $class   = shift;
-    my $name    = shift;
-    my $default = shift || sub {};
+my ( %requires, %attribute_of );
 
-    return sub {
-        my $class = shift;
-        my $attribute = $attribute_of{ $class } ||= {};
-        return $attribute->{ $name } = shift if @_;
-        return $attribute->{ $name } if exists $attribute->{ $name };
-        $attribute->{ $name } = $class->$default;
-    };
+sub requires {
+    my ( $class, @methods ) = @_;
+    push @{ $requires{$class} ||= [] }, @methods;
+}
+
+sub init {
+    my $class  = shift;
+    my $caller = shift;
+    my $stash  = do { no strict 'refs'; \%{"$class\::"} };
+
+    if ( my $requires = $requires{$class} ) {
+        if ( my @methods = grep { !$caller->can($_) } @{$requires} ) {
+            my $methods = join ', ', @methods;
+            croak "Can't apply '$class' to '$caller' - missing $methods";
+        }
+    }
+
+    while ( my ($name, $glob) = each %{$stash} ) {
+        next if !defined *{$glob}{CODE} or grep {$name eq $_} @EXPORT;
+        $caller->add_method( $name => *{$glob}{CODE} );
+    }
+
+    return;
 }
 
 sub end {
     my $class = shift;
-    %{ $attribute_of{$class} } = () if exists $attribute_of{ $class };
+    delete $attribute_of{ $class };
     return;
 }
 
@@ -41,11 +55,23 @@ sub mk_accessors {
     while ( @_ ) {
         my $field = shift;
         my $default = ref $_[0] eq 'CODE' ? shift : undef;
-        *{ "$class\::$field" } = $class->make_accessor( $field, $default );
+        *{ "$class\::$field" } = _make_accessor( $field, $default );
     }
 }
 
-sub component_base_class { 'Blosxom::Component' }
+sub _make_accessor {
+    my $name    = shift;
+    my $default = shift || sub {};
+
+    return sub {
+        my $attribute = $attribute_of{$_[0]} ||= {};
+        return $attribute->{ $name } = $_[1] if @_ == 2;
+        return $attribute->{ $name } if exists $attribute->{ $name };
+        return $attribute->{ $name } = $_[0]->$default;
+    };
+}
+
+sub component_base_class { __PACKAGE__ }
 
 sub load_components {
     my $class  = shift;
@@ -99,11 +125,7 @@ sub load_components {
     return;
 }
 
-sub add_attribute {
-    my ( $class, $name, $default ) = @_;
-    my $accessor = $class->make_accessor( $name, $default );
-    $class->add_method( $name => $accessor );
-}
+sub add_attribute { shift->add_method( $_[0] => _make_accessor(@_) ) }
 
 sub has_method {
     my ( $class, $method ) = @_;

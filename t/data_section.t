@@ -8,6 +8,8 @@ use Test::More tests => 3;
     our %template;
 }
 
+sub component_base_class { 'Blosxom::Plugin' }
+
 my $plugin = __PACKAGE__;
 
 $plugin->load_components( 'DataSection' );

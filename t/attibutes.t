@@ -12,6 +12,6 @@ ok $plugin->foo, 'bar';
 is_deeply $plugin->dump, { foo => 'bar' };
 
 $plugin->end;
-is_deeply $plugin->dump, {};
+is_deeply $plugin->dump, undef;
 
 sub dump { my $VAR1; eval shift->SUPER::dump }

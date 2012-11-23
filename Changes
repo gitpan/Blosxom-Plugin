@@ -1,5 +1,18 @@
 Revision history for Perl extension Blosxom::Plugin.
 
+0.02003  Nov 24th, 2012
+  - Requires CGI.pm 3.51 or higher. Thanks to CPAN testers :)
+  - Components don't need to inherit from Blosxom::Component any more.
+    Blosxom::Plugin exports init(), requires() and mk_accessors():
+
+      package MyComponent;
+      use Blosxom::Plugin;
+      # init(), requires() and mk_accessors() are available
+
+    and so Blosxom::Component is obsolete and will be removed in 0.03.
+  - In addition, Blosxom::Component::DataSection will be renamed to
+    Blosxom::Plugin::DataSection again. Sorry for confusing changes :(
+
 0.02002  Nov 3rd, 2012
   - [Component] add requires()
 
