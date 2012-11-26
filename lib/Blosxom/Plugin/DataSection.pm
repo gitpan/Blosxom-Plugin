@@ -1,35 +1,30 @@
 package Blosxom::Plugin::DataSection;
 use strict;
 use warnings;
-use Blosxom::Plugin;
-use Carp qw//;
 use Data::Section::Simple;
 
-__PACKAGE__->mk_accessors(
-    data_section => sub {
-        my $class = shift;
-        Data::Section::Simple->new($class)->get_data_section;
-    },
-);
+my @exports = qw( get_data_section merge_data_section_into );
+
+sub init {
+    my ( $class, $caller ) = @_;
+    $caller->add_attribute( data_section => \&_build_data_section );
+    $caller->add_method( $_ => \&{$_} ) for @exports;
+    return;
+}
+
+sub _build_data_section {
+    Data::Section::Simple->new($_[0])->get_data_section;
+}
 
 sub get_data_section { $_[0]->data_section->{$_[1]} }
 
-sub data_section_names { keys %{ $_[0]->data_section } }
-
 sub merge_data_section_into {
-    my $class        = shift;
-    my $merge_into   = shift;
-    my $data_section = $class->data_section;
-
-    Carp::croak( 'Not a HASH reference' ) if ref $merge_into ne 'HASH';
-
+    my ( $pkg, $merge_into ) = @_;
+    my $data_section = $pkg->data_section;
     for my $name ( keys %{$data_section} ) {
-        if ( my ($chunk, $flavour) = $name =~ /(.+)\.([^.]+)/ ) {
-            $merge_into->{ $flavour }{ $chunk } = $data_section->{ $name };
-        }
+        my ( $chunk, $flavour ) = $name =~ /(.*)\.([^.]*)/;
+        $merge_into->{ $flavour }{ $chunk } = $data_section->{ $name };
     }
-
-    return;
 }
 
 1;
@@ -38,7 +33,7 @@ __END__
 
 =head1 NAME
 
-Blosxom::Component::DataSection - Read data from __DATA__
+Blosxom::Plugin::DataSection - Read data from __DATA__
 
 =head1 SYNOPSIS
 
@@ -91,11 +86,6 @@ and also merges them into Blosxom default templates.
 =item $template = $class->get_data_section( $name )
 
 This method returns a string containing the data from the named section.
-
-=item @names = $class->data_section_names
-
-This returns a list of all the names that will be recognized
-by the C<get_data_section()> method.
 
 =item $class->merge_data_section_into( \%blosxom::template )
 

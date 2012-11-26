@@ -18,19 +18,22 @@ sub init {
 package My::Component::1;
 use parent -norequire, 'My::Component';
 
-package My::Component::2;
-use parent -norequire, 'My::Component';
+sub init {
+    my ( $class, $caller, $config ) = @_;
+    $caller->add_component( '+My::Component::2' );
+    $class->SUPER::init( $caller, $config );
+}
 
-package My::Component::3;
+package My::Component::2;
 use parent -norequire, 'My::Component';
 
 sub init {
     my ( $class, $caller, $config ) = @_;
-    $caller->add_component( '+My::Component::4' );
+    $caller->add_component( '+My::Component::1' );
     $class->SUPER::init( $caller, $config );
 }
 
-package My::Component::4;
+package My::Component::3;
 use parent -norequire, 'My::Component';
 
 package MyPlugin;
@@ -48,5 +51,4 @@ is_deeply \@got, [
     [ 'My::Component::1', 'MyPlugin', undef        ],
     [ 'My::Component::2', 'MyPlugin', { opt => 2 } ],
     [ 'My::Component::3', 'MyPlugin', undef        ],
-    [ 'My::Component::4', 'MyPlugin', undef        ],
 ];

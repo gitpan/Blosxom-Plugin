@@ -1,5 +1,26 @@
 Revision history for Perl extension Blosxom::Plugin.
 
+0.02004  Nov 27th, 2012
+  - component_base_class() defaults to 'Blosxom::Plugin'
+  - mk_accessors() takes the same argument
+    as Class::Accessors::mk_accessors() does:
+
+      __PACKAGE__->mk_accessors(qw/foo bar car/);
+
+    When you specify the default value of the field,
+    you must pass a hash reference explicitly:
+
+      __PACKAGE__->mk_accessors( 'foo' => \&default );
+      # become
+      __PACKAGE__->mk_accessors({ 'foo' => \&default });
+
+  - Add add_component() which can be used to load additional components
+    while loading components. If the added component has been loaded
+    already, that component will not be loaded again to avoid loading
+    components recursively.
+  - Blosxom::Plugin::Web* will be removed in 0.03
+    because you can "use CGI;" simply in your plugins ;)
+
 0.02003  Nov 24th, 2012
   - Requires CGI.pm 3.51 or higher. Thanks to CPAN testers :)
   - Components don't need to inherit from Blosxom::Component any more.

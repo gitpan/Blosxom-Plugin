@@ -24,10 +24,11 @@ t/attibutes.t
 t/compile.t
 t/conflict.t
 t/data_section.t
+t/import.t
 t/load_components.t
+t/load_components_recursively.t
 t/plugins/data_section
 t/request.t
-t/requires.t
 t/upload.t
 t/upload_post_text.txt
 t/web.t

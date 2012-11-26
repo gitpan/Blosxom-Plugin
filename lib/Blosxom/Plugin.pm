@@ -3,96 +3,145 @@ use 5.008_009;
 use strict;
 use warnings;
 use Carp qw/croak/;
-use Exporter 'import';
 
-our $VERSION = '0.02003';
+our $VERSION = '0.02004';
 
-our @EXPORT = qw( init mk_accessors requires );
+sub import {
+    my $class     = shift;
+    my $component = scalar caller;
+    my $stash     = do { no strict 'refs'; \%{"$component\::"} };
 
-my ( %requires, %attribute_of );
-
-sub requires {
-    my ( $class, @methods ) = @_;
-    push @{ $requires{$class} ||= [] }, @methods;
-}
-
-sub init {
-    my $class  = shift;
-    my $caller = shift;
-    my $stash  = do { no strict 'refs'; \%{"$class\::"} };
-
-    if ( my $requires = $requires{$class} ) {
-        if ( my @methods = grep { !$caller->can($_) } @{$requires} ) {
-            my $methods = join ', ', @methods;
-            croak "Can't apply '$class' to '$caller' - missing $methods";
-        }
+    my %is_excluded;
+    while ( my ($method, $glob) = each %{$stash} ) {
+        next unless defined *{$glob}{CODE};
+        $is_excluded{$method}++;
     }
 
-    while ( my ($name, $glob) = each %{$stash} ) {
-        next if !defined *{$glob}{CODE} or grep {$name eq $_} @EXPORT;
-        $caller->add_method( $name => *{$glob}{CODE} );
+    my ( @requires, @accessors );
+
+    my @exports = (
+        requires => sub { shift; push @requires, @_ },
+        mk_accessors => sub { 
+            my $pkg = shift;
+            my @args = ref $_[0] eq 'HASH' ? %{$_[0]} : map { $_ => undef } @_;
+            push @accessors, @args,
+        },
+        init => sub {
+            my ( $comp, $plugin ) = @_;
+
+            if ( my @methods = grep { !$plugin->can($_) } @requires ) {
+                my $methods = join ', ', @methods;
+                croak "Can't apply '$comp' to '$plugin' - missing $methods";
+            }
+
+            for ( my $i = 0; $i < @accessors; $i += 2 ) {
+                $plugin->add_attribute( @accessors[$i, $i+1] );
+            }
+
+            while ( my ($method, $glob) = each %{$stash} ) {
+                if ( my $code = *{$glob}{CODE} ) {
+                    next if $is_excluded{$method};
+                    $plugin->add_method( $method => $code );
+                }
+            }
+
+            return;
+        },
+    );
+
+    # export mixin methods
+    no strict 'refs';
+    while ( my ( $method, $code ) = splice @exports, 0, 2 ) {
+        *{ "$component\::$method" } = $code;
+        $is_excluded{ $method }++;
     }
 
     return;
 }
 
-sub end {
-    my $class = shift;
-    delete $attribute_of{ $class };
-    return;
-}
-
-sub dump {
-    my $class = shift;
-    require Data::Dumper;
-    local $Data::Dumper::Maxdepth = shift || 1;
-    Data::Dumper::Dumper( $attribute_of{$class} );
-}
+my %attribute_of;
 
 sub mk_accessors {
-    my $class = shift;
+    my $package   = shift;
+    my @accessors = ref $_[0] eq 'HASH' ? %{ $_[0] } : map { $_ => undef } @_;
+
     no strict 'refs';
-    while ( @_ ) {
-        my $field = shift;
-        my $default = ref $_[0] eq 'CODE' ? shift : undef;
-        *{ "$class\::$field" } = _make_accessor( $field, $default );
+    while ( my ($field, $default) = splice @accessors, 0, 2 ) {
+        *{"$package\::$field"} = $package->make_accessor($field, $default);
     }
+
+    return;
 }
 
-sub _make_accessor {
-    my $name    = shift;
-    my $default = shift || sub {};
+sub make_accessor {
+    my $package   = shift;
+    my $name      = shift;
+    my $default   = shift;
+    my $attribute = $attribute_of{$package} ||= {};
 
-    return sub {
-        my $attribute = $attribute_of{$_[0]} ||= {};
-        return $attribute->{ $name } = $_[1] if @_ == 2;
-        return $attribute->{ $name } if exists $attribute->{ $name };
-        return $attribute->{ $name } = $_[0]->$default;
-    };
+    if ( ref $default eq 'CODE' ) {
+        return sub {
+            return $attribute->{$name} = $_[1] if @_ == 2;
+            return $attribute->{$name} if exists $attribute->{$name};
+            return $attribute->{$name} = $package->$default;
+        };
+    }
+    elsif ( defined $default ) {
+        return sub {
+            return $attribute->{$name} = $_[1] if @_ == 2;
+            return $attribute->{$name} if exists $attribute->{$name};
+            return $attribute->{$name} = $default;
+        };
+    }
+    else {
+        return sub {
+            @_ > 1 ? $attribute->{$name} = $_[1] : $attribute->{$name};
+        };
+    }
+
+    return;
+}
+
+sub end { %{ $attribute_of{$_[0]} } = () if exists $attribute_of{$_[0]} }
+
+sub dump {
+    my $package = shift;
+    require Data::Dumper;
+    local $Data::Dumper::Maxdepth = shift || 1;
+    Data::Dumper::Dumper( $attribute_of{$package} );
 }
 
 sub component_base_class { __PACKAGE__ }
 
 sub load_components {
-    my $class  = shift;
-    my $prefix = $class->component_base_class;
+    my $package = shift;
+    my @args    = @_;
+    my $prefix  = $package->component_base_class;
 
-    my ( $component, %has_conflict, %code_of );
+    my ( $component, %is_loaded, %has_conflict, %code_of );
+
+    local *add_component 
+        = sub { push @args, @_ > 2 ? @_[1, 2] : $_[1] };
 
     local *add_method = sub {
-        my ( $class, $method, $code ) = @_;
-        return if defined &{ "$class\::$method" };
-        push @{ $has_conflict{$method} ||= [] }, $component;
-        $code_of{ $method } = $code;
-        return;
+        my ( $pkg, $method, $code ) = @_;
+        unless ( defined &{"$package\::$method"} ) {
+            push @{ $has_conflict{$method} ||= [] }, $component;
+            $code_of{ $method } = $code;
+        }
     };
 
-    while ( @_ ) {
+    while ( @args ) {
         $component = do {
-            my $class = shift;
+            my $class = shift @args;
 
-            unless ( $class =~ s/^\+// or $class =~ /^$prefix/ ) {
+            if ( $class !~ s/^\+// and $class !~ /^$prefix/ ) {
                 $class = "$prefix\::$class";
+            }
+
+            if ( $is_loaded{$class}++ ) {
+                shift @args if ref $args[0] eq 'HASH';
+                next;
             }
 
             ( my $file = $class ) =~ s{::}{/}g;
@@ -101,16 +150,16 @@ sub load_components {
             $class;
         };
 
-        my $config = ref $_[0] eq 'HASH' ? shift : undef;
+        my $config = ref $args[0] eq 'HASH' ? shift @args : undef;
 
-        $component->init( $class, $config );
+        $component->init( $package, $config );
     }
 
     if ( %code_of ) {
         no strict 'refs';
-        while ( my ($method, $components) = each %has_conflict ) {
+        while ( my ( $method, $components ) = each %has_conflict ) {
             delete $has_conflict{ $method } if @{ $components } == 1;
-            *{ "$class\::$method" } = delete $code_of{ $method };
+            *{ "$package\::$method" } = $code_of{ $method };
         }
     }
 
@@ -118,19 +167,19 @@ sub load_components {
         croak join "\n", map {
             "Due to a method name conflict between components " .
             "'" . join( ' and ', sort @{ $has_conflict{$_} } ) . "', " .
-            "the method '$_' must be implemented by '$class'";
+            "the method '$_' must be implemented by '$package'";
         } keys %has_conflict;
     }
 
     return;
 }
 
-sub add_attribute { shift->add_method( $_[0] => _make_accessor(@_) ) }
-
-sub has_method {
-    my ( $class, $method ) = @_;
-    defined &{ "$class\::$method" };
+sub add_attribute {
+    my ( $pkg, $name, $default ) = @_;
+    $pkg->add_method( $name => $pkg->make_accessor($name, $default) );
 }
+
+sub has_method { defined &{"$_[0]::$_[1]"} }
 
 1;
 
@@ -150,21 +199,21 @@ Blosxom::Plugin - Base class for Blosxom plugins
   # generates a class attribute called foo()
   __PACKAGE__->mk_accessors( 'foo' );
 
-  # does Blosxom::Component::DataSection
+  # does Blosxom::Plugin::DataSection
   __PACKAGE__->load_components( 'DataSection' );
 
   sub start {
-      my $class = shift;
+      my $pkg = shift;
 
-      $class->foo( 'bar' );
-      my $value = $class->foo; # => "bar"
+      $pkg->foo( 'bar' );
+      my $value = $pkg->foo; # => "bar"
 
-      my $template = $class->get_data_section( 'my_plugin.html' );
+      my $template = $pkg->get_data_section( 'my_plugin.html' );
       # <!DOCTYPE html>
       # ...
 
       # merge __DATA__ into Blosxom default templates
-      $class->merge_data_section_into( \%blosxom::template );
+      $pkg->merge_data_section_into( \%blosxom::template );
 
       return 1;
   }
@@ -178,7 +227,6 @@ Blosxom::Plugin - Base class for Blosxom plugins
   <!DOCTYPE html>
   <html>
   <head>
-    <meta charset="utf-8">
     <title>My Plugin</title>
   </head>
   <body>
@@ -205,33 +253,35 @@ It's intended that they will be shared on CPAN.
 
 =item $class->mk_accessors( @fields )
 
-=item $class->mk_accessors( $field => \&default, ... )
+=item $class->mk_accessors({ $field => \&default, ... })
 
 This creates class attributes for each named field given
-in C<@fields>. Attributes can have default values which is not generated
+in C<@fields>.
+
+  __PACKAGE__->mk_accesssors(qw/foo bar car/);
+
+Attributes can have default values which is not generated
 until the field is read. C<&default> is called as a method on the class
 with no additional parameters.
 
-  package my_plugin;
-  use parent 'Blosxom::Plugin';
   use Path::Class::File;
 
-  __PACKAGE__->mk_accessors(
-      'path',
+  __PACKAGE__->mk_accessors({
+      'path' => undef,
       'file' => sub {
-          my $class = shift;
-          Path::Class::File->new( $class->path );
+          my $pkg = shift; # => "my_plugin"
+          Path::Class::File->new( $pkg->path );
       },
-  );
+  });
 
   sub start {
-      my $class = shift;
+      my $pkg = shift;
 
-      $class->path( '/path/to/entry.txt' );
-      my $path = $class->path; # => "/path/to/entry.txt"
+      $pkg->path( '/path/to/entry.txt' );
+      my $path = $pkg->path; # => "/path/to/entry.txt"
 
       # file() is a Path::Class::File object
-      my $basename = $class->file->basename; # => "entry.txt"
+      my $basename = $pkg->file->basename; # => "entry.txt"
 
       return 1;
   }
@@ -244,7 +294,7 @@ Loads the given components into the current module.
 Components can be configured by the loaders.
 If a module begins with a C<+> character,
 it is taken to be a fully qualified class name,
-otherwise C<Blosxom::Component> is prepended to it.
+otherwise C<Blosxom::Plugin> is prepended to it.
 
   __PACKAGE__->load_components( '+MyComponent' => \%config );
 
@@ -287,19 +337,22 @@ C<&default> is called as a method on the class with no additional arguments.
       $caller->add_attribute( 'bar' => sub { ... } );
   }
 
+=item $class->add_component( $component )
+
+=item $class->add_component( $component => \%configuration )
+
+This adds the component to the list of components to be loaded
+while loading components.
+
+  sub init {
+      my ( $class, $caller ) = @_;
+      $caller->add_component( 'DataSection' );
+  }
+
 =item $bool = $class->has_method( $method_name )
 
 Returns a Boolean value telling whether or not the class defines the named
 method. It does not include methods inherited from parent classes.
-
-  my $requires = 'bar';
-
-  sub init {
-      my ( $class, $context ) = @_;
-      unless ( $context->has_method($requires) ) {
-          die "Cannot apply '$class' to '$context'";
-      }
-  }
 
 =item $class->end
 
